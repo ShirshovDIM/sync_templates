@@ -1,13 +1,13 @@
 {
   "diagrams": {
     "f8d4d2bd-f138-4519-aa69-54e2635ed701": {
-      "changeDt": "2026-01-16 16:49:11.339",
-      "createDt": "2026-01-16 16:49:11.339",
+      "changeDt": "2026-01-16 17:30:18.698",
+      "createDt": "2026-01-16 17:30:18.698",
       "diagramWithParameters": {
         "blockFlag": false,
-        "changeDt": "2026-01-16 16:49:11.339",
+        "changeDt": "2026-01-16 17:30:18.698",
         "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
-        "createDt": "2026-01-16 16:49:11.339",
+        "createDt": "2026-01-16 17:30:18.698",
         "diagramDescription": "CDCF Journal MS SQL to Kafka for elm_tst",
         "diagramId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
         "diagramKeyFields": [],
@@ -88,62 +88,26 @@
           "isTemplate": false,
           "jsonProperty": {
             "capture_all_tables": false,
-            "cdc": {
-              "mssql": {
-                "scan": {
-                  "startup": {
-                    "mode": "LATEST_OFFSET"
-                  }
-                },
-                "server": {
-                  "time": {
-                    "zone": "UTC"
-                  }
-                }
-              }
-            },
             "data_provider_uuid": "7ea2de0e-b9cd-46fa-86a2-bd483edb90eb",
-            "sourceId": "1336ae9c-5e01-5f3b-a195-9e022dca538a",
-            "source_settingsId": "f0ca023a-3dab-556b-874c-bb18503ccd27",
             "debezium": {
-              "properties": [
-                {
-                  "name": "snapshot.mode",
-                  "value": "no_data"
-                },
-                {
-                  "name": "database.hostname",
-                  "value": "localhost"
-                },
-                {
-                  "name": "database.port",
-                  "value": "1433"
-                },
-                {
-                  "name": "database.user",
-                  "value": "cdc_user"
-                },
-                {
-                  "name": "database.dbname",
-                  "value": "elm"
-                },
-                {
-                  "name": "schema.include.list",
-                  "value": "dbo"
-                }
-              ]
+              "properties": []
             },
             "execution_options": {
               "logging": true
             },
-            "fields": {
-              "data": {
-                "schema": {
-                  "included": false
-                }
+            "include_schema": false,
+            "nodeType": "135",
+            "tables": [
+              {
+                "name": "dbo.lz_agreement_types",
+                "row_key": "dbo.lz_agreement_types__id"
+              },
+              {
+                "name": "dbo.lz_books",
+                "row_key": "dbo.lz_books__id"
               }
-            },
-            "nodeType": "135"
+            ],
+            "timezone": "UTC"
           },
           "jsonPropertyHashCode": -820458874,
           "metaInfo": {

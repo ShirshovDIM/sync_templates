@@ -111,62 +111,24 @@
                     "isTemplate": false,
                     "jsonProperty": {
                         "capture_all_tables": false,
-                        "cdc": {
-                            "mssql": {
-                                "scan": {
-                                    "startup": {
-                                        "mode": "LATEST_OFFSET"
-                                    }
-                                },
-                                "server": {
-                                    "time": {
-                                        "zone": "UTC"
-                                    }
-                                }
-                            }
-                        },
                         "data_provider_uuid": "{{ provider_uuid }}",
-                        "sourceId": "{{ source_id }}",
-                        "source_settingsId": "{{ source_settings_id }}",
                         "debezium": {
-                            "properties": [
-                                {
-                                    "name": "snapshot.mode",
-                                    "value": "no_data"
-                                },
-                                {
-                                    "name": "database.hostname",
-                                    "value": "localhost"
-                                },
-                                {
-                                    "name": "database.port",
-                                    "value": "1433"
-                                },
-                                {
-                                    "name": "database.user",
-                                    "value": "cdc_user"
-                                },
-                                {
-                                    "name": "database.dbname",
-                                    "value": "{{ app_code }}"
-                                },
-                                {
-                                    "name": "schema.include.list",
-                                    "value": "dbo"
-                                }
-                            ]
+                            "properties": []
                         },
                         "execution_options": {
                             "logging": true
                         },
-                        "fields": {
-                            "data": {
-                                "schema": {
-                                    "included": false
-                                }
-                            }
-                        },
-                        "nodeType": "135"
+                        "include_schema": false,
+                        "nodeType": "135",
+                        "tables": [
+                            {%- for tbl in tables -%}
+                            {
+                                "name": "{{ tbl.full }}",
+                                "row_key": "{{ tbl.full }}__id"
+                            }{%- if not loop.last %},{% endif %}
+                            {%- endfor -%}
+                        ],
+                        "timezone": "UTC"
                     },
                     "jsonPropertyHashCode": -820458874,
                     "metaInfo": {
