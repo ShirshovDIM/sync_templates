@@ -1,0 +1,379 @@
+{#
+  CDCF Journal Template for PostgreSQL MultiTable (nodeTypeId: 114)
+
+  Usage:
+    render(template, metaobject=metaobject, flow=flow, current_date=datetime.now())
+#}
+{%- set ns = namespace -%}
+{%- set ns.app_code = flow.application_code -%}
+{%- set ns.module_code = flow.module_code -%}
+{%- set ns.diagram_id = flow.propvalues_json.flow_uuid -%}
+{%- set ns.current_date = current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000) -%}
+
+{# Extract provider info #}
+{%- for provider in flow.providers -%}
+  {%- if provider.domain_code == 'dComponent' -%}
+    {%- set ns.provider_uuid = provider.tool_uuid -%}
+    {%- set ns.component_code = provider.component_code -%}
+    {%- set ns.propvalues = provider.propvalues_json -%}
+  {%- endif -%}
+{%- endfor -%}
+
+{# Extract tables from metaobjects #}
+{%- set ns.tables = [] -%}
+{%- set ns.table_names = [] -%}
+{%- set ns.full_table_names = [] -%}
+{%- for obj in flow.metaobjects -%}
+  {%- if obj.entitytype_pname -%}
+    {%- set _parts = obj.entitytype_pname.split('__') -%}
+    {%- if _parts | length == 2 -%}
+      {%- set _schema = _parts[0] -%}
+      {%- set _table = _parts[1] -%}
+      {%- set _ = ns.tables.append({'schema': _schema, 'table': _table, 'full': _schema + '.' + _table}) -%}
+      {%- set _ = ns.table_names.append(_table) -%}
+      {%- set _ = ns.full_table_names.append(_schema + '.' + _table) -%}
+    {%- else -%}
+      {# Fallback: use public as default schema #}
+      {%- set _ = ns.tables.append({'schema': 'public', 'table': obj.entitytype_pname, 'full': 'public.' + obj.entitytype_pname}) -%}
+      {%- set _ = ns.table_names.append(obj.entitytype_pname) -%}
+      {%- set _ = ns.full_table_names.append('public.' + obj.entitytype_pname) -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endfor -%}
+
+{# Extract flowtasks for node UUIDs #}
+{%- set ns.tasks = {} -%}
+{%- for task in flow.flowtasks -%}
+  {%- set _task_uuid = task.propvalues_json.get('flowtask_uuid', task.propvalues_json.get('task_uuid', '')) -%}
+  {%- set _ = ns.tasks.update({task.task_pname: _task_uuid}) -%}
+{%- endfor -%}
+
+{# Extract flowtransitions for link UUIDs #}
+{%- set ns.transitions = {} -%}
+{%- for transition in flow.flowtransitions -%}
+  {%- set _trans_uuid = transition.propvalues_json.get('flowtransition_uuid', '') -%}
+  {%- set _key = transition.task_from_code + '__' + transition.task_to_code -%}
+  {%- set _ = ns.transitions.update({_key: _trans_uuid}) -%}
+{%- endfor -%}
+
+{# Build table list for filter and mapping #}
+{%- set ns.table_filter_list = [] -%}
+{%- for tbl in ns.full_table_names -%}
+  {%- set _ = ns.table_filter_list.append("'" + tbl + "'") -%}
+{%- endfor -%}
+{%- set ns.table_filter = ns.table_filter_list | join(', ') -%}
+
+{
+    "diagrams": {
+        "{{ ns.diagram_id }}": {
+            "changeDt": "{{ ns.current_date }}",
+            "createDt": "{{ ns.current_date }}",
+            "diagramWithParameters": {
+                "blockFlag": false,
+                "changeDt": "{{ ns.current_date }}",
+                "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+                "createDt": "{{ ns.current_date }}",
+                "diagramDescription": "CDCF Journal PostgreSQL to Kafka for {{ ns.app_code }}",
+                "diagramId": "{{ ns.diagram_id }}",
+                "diagramKeyFields": [],
+                "diagramNameEntity": {
+                    "id": "{{ ns.diagram_id }}",
+                    "objectId": "{{ ns.diagram_id }}",
+                    "objectName": "cdcf__postgres2kafka_bdp__{{ ns.app_code }}"
+                },
+                "diagramType": "DEFAULT",
+                "errorResponseFlag": false,
+                "inOutParameters": [],
+                "lastChangeByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+                "lifeCycleState": "ACTIVE",
+                "metaInfo": {
+                    "nodeCounter": {{ 4 if ns.tables | length > 0 else 3 }}
+                },
+                "notificationEmails": [],
+                "saveDiagramMessage": false,
+                "treatTerminalStateAsInitial": false,
+                "versionId": "{{ ns.diagram_id }}",
+                "versionName": "latest",
+                "versionType": "LATEST"
+            },
+            "links": [
+                {%- if ns.tables | length > 0 %}
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ ns.diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ ns.diagram_id }}",
+                    "linkId": "{{ ns.transitions.get('read_db_log__split_data', '00000000-0000-0000-0000-000000000001') }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ ns.tasks.get('split_data', ns.tasks.get('mmSplitTransactionLog', '')) }}"
+                    },
+                    "nextNodeVersionId": "{{ ns.tasks.get('split_data', ns.tasks.get('mmSplitTransactionLog', '')) }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ ns.tasks.get('read_db_log', ns.tasks.get('mmReadTransactionLog', '')) }}"
+                    },
+                    "prevNodeVersionId": "{{ ns.tasks.get('read_db_log', ns.tasks.get('mmReadTransactionLog', '')) }}"
+                },
+                {%- endif %}
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ ns.diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ ns.diagram_id }}",
+                    "linkId": "{{ ns.transitions.get('split_data__produce_data', '00000000-0000-0000-0000-000000000002') }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ ns.tasks.get('produce_data', ns.tasks.get('mmProduceData', '')) }}"
+                    },
+                    "nextNodeVersionId": "{{ ns.tasks.get('produce_data', ns.tasks.get('mmProduceData', '')) }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ ns.tasks.get('split_data', ns.tasks.get('mmSplitTransactionLog', '')) }}"
+                    },
+                    "prevNodeVersionId": "{{ ns.tasks.get('split_data', ns.tasks.get('mmSplitTransactionLog', '')) }}"
+                }
+            ],
+            "nodes": [
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ ns.diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ ns.diagram_id }}",
+                    "displayType": "Источник - CDC - PostgreSQL MultiTable",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "capture_all_tables": false,
+                        "cdc": {
+                            "postgres": {
+                                "changelog": {
+                                    "mode": "all"
+                                },
+                                "decoding": {
+                                    "plugin": {
+                                        "name": "pgoutput"
+                                    }
+                                },
+                                "server": {
+                                    "time": {
+                                        "zone": "UTC"
+                                    }
+                                },
+                                "slot": {
+                                    "name": "{{ ns.propvalues.get('slot_name', 'bdp_debezium_slot') }}"
+                                },
+                                "table": {
+                                    "name": [
+{%- for tbl in ns.tables -%}
+                                        "{{ tbl.table }}"{{ "," if not loop.last }}
+{%- endfor -%}
+                                    ]
+                                }
+                            }
+                        },
+                        "data_provider_uuid": "{{ ns.provider_uuid }}",
+                        "debezium": {
+                            "properties": [
+                                {
+                                    "name": "publication.name",
+                                    "value": "{{ ns.propvalues.get('publication_name', 'cdc_publication') }}"
+                                },
+                                {
+                                    "name": "snapshot.mode",
+                                    "value": "{{ ns.propvalues.get('snapshot_mode', 'never') }}"
+                                },
+                                {
+                                    "name": "schema.include.list",
+                                    "value": "{{ ns.propvalues.get('schema_list', 'public') }}"
+                                },
+                                {
+                                    "name": "heartbeat.interval.ms",
+                                    "value": "{{ ns.propvalues.get('heartbeat_interval', '5000') }}"
+                                },
+                                {
+                                    "name": "heartbeat.action.query",
+                                    "value": "{{ ns.propvalues.get('heartbeat_query', 'INSERT INTO public.heartbeat (id, confirmed_flush_lsn, modify_date) SELECT \\'cdc_publication\\', confirmed_flush_lsn::varchar, now() FROM pg_replication_slots WHERE slot_name = \\'bdp_debezium_slot\\' ON CONFLICT (id) DO UPDATE SET confirmed_flush_lsn = EXCLUDED.confirmed_flush_lsn, modify_date = EXCLUDED.modify_date;') }}"
+                                },
+                                {
+                                    "name": "max.batch.size",
+                                    "value": "{{ ns.propvalues.get('max_batch_size', '10000') }}"
+                                },
+                                {
+                                    "name": "max.queue.size",
+                                    "value": "{{ ns.propvalues.get('max_queue_size', '32000') }}"
+                                },
+                                {
+                                    "name": "poll.interval.ms",
+                                    "value": "{{ ns.propvalues.get('poll_interval', '100') }}"
+                                }
+                            ]
+                        },
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "fields": {
+                            "data": {
+                                "schema": {
+                                    "included": false
+                                }
+                            }
+                        },
+                        "nodeType": "114"
+                    },
+                    "jsonPropertyHashCode": -820458874,
+                    "metaInfo": {
+                        "position": {
+                            "x": 355.0,
+                            "y": 300.0
+                        }
+                    },
+                    "nodeId": "{{ ns.tasks.get('read_db_log', ns.tasks.get('mmReadTransactionLog', '')) }}",
+                    "nodeName": "Источник - CDC - PostgreSQL MultiTable_0",
+                    "nodeTypeId": 114,
+                    "nodeVersionId": "{{ ns.tasks.get('read_db_log', ns.tasks.get('mmReadTransactionLog', '')) }}",
+                    "validState": "VALID"
+                }
+                {%- if ns.tables | length > 0 %},
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ ns.diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ ns.diagram_id }}",
+                    "displayType": "Трансформация - Простая - Маппинг",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        },
+                        "mapping": [
+                            {
+                                "alias": "data",
+                                "expression": "data"
+                            },
+                            {
+                                "alias": "table_name",
+                                "expression": "table_name"
+                            },
+                            {
+                                "alias": "key_value",
+                                "expression": "cast( case  when table_name in  ({{ ns.table_filter }})  then\r\n        IF(json_value(data, '$.op') = 'd', json_value(data, '$.before.id'), json_value(data, '$.after.id'))  end as string )"
+                            },
+                            {
+                                "alias": "topic_body",
+                                "expression": "replace(table_name, '.', '__')"
+                            },
+                            {
+                                "alias": "postfix",
+                                "expression": "'journal'"
+                            }
+                        ],
+                        "nodeType": "104"
+                    },
+                    "jsonPropertyHashCode": 1883690727,
+                    "metaInfo": {
+                        "position": {
+                            "x": 858.0,
+                            "y": 301.0
+                        }
+                    },
+                    "nodeId": "{{ ns.tasks.get('split_data', ns.tasks.get('mmSplitTransactionLog', '')) }}",
+                    "nodeName": "{{ ns.app_code | lower }}_key_mapping",
+                    "nodeTypeId": 104,
+                    "nodeVersionId": "{{ ns.tasks.get('split_data', ns.tasks.get('mmSplitTransactionLog', '')) }}",
+                    "validState": "VALID"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ ns.diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ ns.diagram_id }}",
+                    "displayType": "Трансформация - Фильтр",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        },
+                        "filter": "table_name in (\r\n    {{ ns.table_filter }}\r\n)",
+                        "nodeType": "105"
+                    },
+                    "jsonPropertyHashCode": -832865046,
+                    "metaInfo": {
+                        "position": {
+                            "x": 1323.0,
+                            "y": 361.0
+                        }
+                    },
+                    "nodeId": "{{ ns.tasks.get('produce_data', ns.tasks.get('mmProduceData', '')) }}",
+                    "nodeName": "{{ ns.app_code | lower }}_filter",
+                    "nodeTypeId": 105,
+                    "nodeVersionId": "{{ ns.tasks.get('produce_data', ns.tasks.get('mmProduceData', '')) }}",
+                    "validState": "VALID"
+                }
+                {%- endif %},
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ ns.diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ ns.diagram_id }}",
+                    "displayType": "Приёмник - Брокер сообщений - Kafka",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "execution_options": {},
+                        "kafka": {
+                            "producer": {
+                                "properties": [
+                                    {
+                                        "name": "transaction.timeout.ms",
+                                        "row_key": "65d469aa-79e5-461c-bd37-78b82893785b",
+                                        "value": "900000"
+                                    }
+                                ],
+                                "semantic": "AT_LEAST_ONCE",
+                                "topic_selection_type": "dynamic",
+                                "topic_selector": {
+                                    "delimiter": "__",
+                                    "fields": [
+                                        "topic_body",
+                                        "postfix"
+                                    ],
+                                    "prefix": "{{ ns.app_code | lower }}__"
+                                }
+                            }
+                        },
+                        "kafka_connection_uuid": "{{ ns.provider_uuid }}",
+                        "nodeType": "103",
+                        "serde": {
+                            "key": {
+                                "enabled": true,
+                                "format": "csv",
+                                "key_by": [
+                                    "key_value"
+                                ]
+                            },
+                            "value": {
+                                "format": "json"
+                            }
+                        }
+                    },
+                    "jsonPropertyHashCode": 572324776,
+                    "metaInfo": {
+                        "position": {
+                            "x": 1352.0,
+                            "y": 301.0
+                        }
+                    },
+                    "nodeId": "{{ ns.provider_uuid }}",
+                    "nodeName": "Kafka {{ ns.app_code | lower }}",
+                    "nodeTypeId": 103,
+                    "nodeVersionId": "{{ ns.provider_uuid }}",
+                    "validState": "VALID"
+                }
+            ],
+            "variableLinkAssociations": [],
+            "variableNodeAssociations": []
+        }
+    },
+    "rootIdsAndDescriptions": {
+        "{{ ns.diagram_id }}": {
+            "{{ ns.diagram_id }}": "cdcf__postgres2kafka_bdp__{{ ns.app_code }} (latest)"
+        }
+    }
+}

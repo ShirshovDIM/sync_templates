@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Generated files (examples, can be regenerated)
+elm_cdcf.json
+test_output.json
+
+# Check scripts (temporary)
+check_*.py
+find_*.py
+add_*.py
+final_validation.py
+
+# Reference exports (can be regenerated from metamodels)
+Export_*.json
+cids-data.*.json
+
+# Keep only source files
+!generate_cdcf.py
+!generate_*.py
+!templates/
+!docs/
+!.gitignore
+!README.md

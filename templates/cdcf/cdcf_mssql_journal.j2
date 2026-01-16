@@ -1,0 +1,318 @@
+{#
+  CDCF Journal Template for MS SQL MultiTable (nodeTypeId: 135)
+
+  Переменные, переданные из Python:
+  - provider_uuid: UUID провайдера
+  - source_settings_id: source_settings_id из провайдера
+  - source_id: sourceId из appsystems
+  - diagram_id: UUID диаграммы
+  - task_uuids: словарь {task_pname: uuid}
+  - transition_uuids: словарь {from__to: uuid}
+  - tables: список таблиц [{'schema': ..., 'table': ..., 'full': ...}]
+#}
+
+{%- set app_code = flow.application_code -%}
+{%- set current_date = current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000) -%}
+
+{# Build table list for filter and mapping #}
+{%- set table_filter_list = [] -%}
+{%- for tbl in tables -%}
+  {%- set _ = table_filter_list.append("'" + tbl.full + "'") -%}
+{%- endfor -%}
+{%- set table_filter = table_filter_list | join(', ') -%}
+
+{
+    "diagrams": {
+        "{{ diagram_id }}": {
+            "changeDt": "{{ current_date }}",
+            "createDt": "{{ current_date }}",
+            "diagramWithParameters": {
+                "blockFlag": false,
+                "changeDt": "{{ current_date }}",
+                "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+                "createDt": "{{ current_date }}",
+                "diagramDescription": "CDCF Journal MS SQL to Kafka for {{ app_code }}",
+                "diagramId": "{{ diagram_id }}",
+                "diagramKeyFields": [],
+                "diagramNameEntity": {
+                    "id": "{{ diagram_id }}",
+                    "objectId": "{{ diagram_id }}",
+                    "objectName": "cdcf__mssql2kafka_bdp__{{ app_code }}"
+                },
+                "diagramType": "DEFAULT",
+                "errorResponseFlag": false,
+                "inOutParameters": [],
+                "lastChangeByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+                "lifeCycleState": "ACTIVE",
+                "metaInfo": {
+                    "nodeCounter": {{ 4 if tables | length > 0 else 3 }}
+                },
+                "notificationEmails": [],
+                "saveDiagramMessage": false,
+                "treatTerminalStateAsInitial": false,
+                "versionId": "{{ diagram_id }}",
+                "versionName": "latest",
+                "versionType": "LATEST"
+            },
+            "links": [
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "linkId": "{{ transition_uuids.get('read_db_log__split_data', '00000000-0000-0000-0000-000000000001') }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ task_uuids.get('split_data', '') }}"
+                    },
+                    "nextNodeVersionId": "{{ task_uuids.get('split_data', '') }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ task_uuids.get('read_db_log', '') }}"
+                    },
+                    "prevNodeVersionId": "{{ task_uuids.get('read_db_log', '') }}"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "linkId": "{{ transition_uuids.get('split_data__produce_data', '00000000-0000-0000-0000-000000000002') }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ task_uuids.get('produce_data', '') }}"
+                    },
+                    "nextNodeVersionId": "{{ task_uuids.get('produce_data', '') }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ task_uuids.get('split_data', '') }}"
+                    },
+                    "prevNodeVersionId": "{{ task_uuids.get('split_data', '') }}"
+                }
+            ],
+            "nodes": [
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "displayType": "Источник - CDC - MS SQL MultiTable",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "capture_all_tables": false,
+                        "cdc": {
+                            "mssql": {
+                                "scan": {
+                                    "startup": {
+                                        "mode": "LATEST_OFFSET"
+                                    }
+                                },
+                                "server": {
+                                    "time": {
+                                        "zone": "UTC"
+                                    }
+                                }
+                            }
+                        },
+                        "data_provider_uuid": "{{ provider_uuid }}",
+                        "sourceId": "{{ source_id }}",
+                        "source_settingsId": "{{ source_settings_id }}",
+                        "debezium": {
+                            "properties": [
+                                {
+                                    "name": "snapshot.mode",
+                                    "value": "no_data"
+                                },
+                                {
+                                    "name": "database.hostname",
+                                    "value": "localhost"
+                                },
+                                {
+                                    "name": "database.port",
+                                    "value": "1433"
+                                },
+                                {
+                                    "name": "database.user",
+                                    "value": "cdc_user"
+                                },
+                                {
+                                    "name": "database.dbname",
+                                    "value": "{{ app_code }}"
+                                },
+                                {
+                                    "name": "schema.include.list",
+                                    "value": "dbo"
+                                }
+                            ]
+                        },
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "fields": {
+                            "data": {
+                                "schema": {
+                                    "included": false
+                                }
+                            }
+                        },
+                        "nodeType": "135"
+                    },
+                    "jsonPropertyHashCode": -820458874,
+                    "metaInfo": {
+                        "position": {
+                            "x": 355.0,
+                            "y": 300.0
+                        }
+                    },
+                    "nodeId": "{{ task_uuids.get('read_db_log', '') }}",
+                    "nodeName": "Источник - CDC - MS SQL MultiTable_0",
+                    "nodeTypeId": 135,
+                    "nodeVersionId": "{{ task_uuids.get('read_db_log', '') }}",
+                    "validState": "VALID"
+                }
+                {%- if tables | length > 0 %}
+                ,
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "displayType": "Трансформация - Простая - Маппинг",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        },
+                        "mapping": [
+                            {
+                                "alias": "data",
+                                "expression": "data"
+                            },
+                            {
+                                "alias": "table_name",
+                                "expression": "table_name"
+                            },
+                            {
+                                "alias": "key_value",
+                                "expression": "cast(\n  case \n  when table_name in (\n    {{ table_filter }}\n  )\n  then IF(json_value(data, '$.op') = 'd', json_value(data, '$.before.id'), json_value(data, '$.after.id')) \n  end\nas string )"
+                            },
+                            {
+                                "alias": "topic_body",
+                                "expression": "replace(lower(table_name), '.', '__')"
+                            },
+                            {
+                                "alias": "postfix",
+                                "expression": "'journal'"
+                            }
+                        ],
+                        "nodeType": "104"
+                    },
+                    "jsonPropertyHashCode": -889810507,
+                    "metaInfo": {
+                        "position": {
+                            "x": 845.0,
+                            "y": 361.0
+                        }
+                    },
+                    "nodeId": "{{ task_uuids.get('split_data', '') }}",
+                    "nodeName": "{{ app_code | lower }}_key_mapping",
+                    "nodeTypeId": 104,
+                    "nodeVersionId": "{{ task_uuids.get('split_data', '') }}",
+                    "validState": "VALID"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "displayType": "Трансформация - Фильтр",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        },
+                        "filter": "table_name in (\n    {{ table_filter }}\n)",
+                        "nodeType": "105"
+                    },
+                    "jsonPropertyHashCode": -832865046,
+                    "metaInfo": {
+                        "position": {
+                            "x": 1323.0,
+                            "y": 361.0
+                        }
+                    },
+                    "nodeId": "{{ task_uuids.get('produce_data', '') }}",
+                    "nodeName": "{{ app_code | lower }}_filter",
+                    "nodeTypeId": 105,
+                    "nodeVersionId": "{{ task_uuids.get('produce_data', '') }}",
+                    "validState": "VALID"
+                }
+                {%- endif %}
+                ,
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "displayType": "Приёмник - Брокер сообщений - Kafka",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "execution_options": {},
+                        "kafka": {
+                            "producer": {
+                                "properties": [
+                                    {
+                                        "name": "transaction.timeout.ms",
+                                        "row_key": "65d469aa-79e5-461c-bd37-78b82893785b",
+                                        "value": "900000"
+                                    }
+                                ],
+                                "semantic": "AT_LEAST_ONCE",
+                                "topic_selection_type": "dynamic",
+                                "topic_selector": {
+                                    "delimiter": "__",
+                                    "fields": [
+                                        "topic_body",
+                                        "postfix"
+                                    ],
+                                    "prefix": "{{ app_code | lower }}__"
+                                }
+                            }
+                        },
+                        "kafka_connection_uuid": "{{ provider_uuid }}",
+                        "nodeType": "103",
+                        "serde": {
+                            "key": {
+                                "enabled": true,
+                                "format": "csv",
+                                "key_by": [
+                                    "key_value"
+                                ]
+                            },
+                            "value": {
+                                "format": "json"
+                            }
+                        }
+                    },
+                    "jsonPropertyHashCode": 572324776,
+                    "metaInfo": {
+                        "position": {
+                            "x": 1783.0,
+                            "y": 361.0
+                        }
+                    },
+                    "nodeId": "{{ provider_uuid }}",
+                    "nodeName": "Kafka {{ app_code | lower }}",
+                    "nodeTypeId": 103,
+                    "nodeVersionId": "{{ provider_uuid }}",
+                    "validState": "VALID"
+                }
+            ],
+            "variableLinkAssociations": [],
+            "variableNodeAssociations": []
+        }
+    },
+    "rootIdsAndDescriptions": {
+        "{{ diagram_id }}": {
+            "{{ diagram_id }}": "cdcf__mssql2kafka_bdp__{{ app_code }} (latest)"
+        }
+    }
+}
