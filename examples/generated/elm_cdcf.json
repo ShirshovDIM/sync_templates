@@ -1,13 +1,13 @@
 {
   "diagrams": {
     "f8d4d2bd-f138-4519-aa69-54e2635ed701": {
-      "changeDt": "2026-01-16 16:28:22.243",
-      "createDt": "2026-01-16 16:28:22.243",
+      "changeDt": "2026-01-16 16:49:11.339",
+      "createDt": "2026-01-16 16:49:11.339",
       "diagramWithParameters": {
         "blockFlag": false,
-        "changeDt": "2026-01-16 16:28:22.243",
+        "changeDt": "2026-01-16 16:49:11.339",
         "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
-        "createDt": "2026-01-16 16:28:22.243",
+        "createDt": "2026-01-16 16:49:11.339",
         "diagramDescription": "CDCF Journal MS SQL to Kafka for elm_tst",
         "diagramId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
         "diagramKeyFields": [],
@@ -69,9 +69,9 @@
           "diagramVersionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
           "linkId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
           "nextNode": {
-            "nodeVersionId": "7ea2de0e-b9cd-46fa-86a2-bd483edb90eb"
+            "nodeVersionId": "fa789b5b-dddf-43c1-9816-081ec38f28a9"
           },
-          "nextNodeVersionId": "7ea2de0e-b9cd-46fa-86a2-bd483edb90eb",
+          "nextNodeVersionId": "fa789b5b-dddf-43c1-9816-081ec38f28a9",
           "prevNode": {
             "nodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771"
           },
@@ -265,7 +265,7 @@
                 }
               }
             },
-            "kafka_connection_uuid": "7ea2de0e-b9cd-46fa-86a2-bd483edb90eb",
+            "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
             "nodeType": "103",
             "serde": {
               "key": {
@@ -287,10 +287,10 @@
               "y": 361.0
             }
           },
-          "nodeId": "7ea2de0e-b9cd-46fa-86a2-bd483edb90eb",
+          "nodeId": "fa789b5b-dddf-43c1-9816-081ec38f28a9",
           "nodeName": "Kafka elm",
           "nodeTypeId": 103,
-          "nodeVersionId": "7ea2de0e-b9cd-46fa-86a2-bd483edb90eb",
+          "nodeVersionId": "fa789b5b-dddf-43c1-9816-081ec38f28a9",
           "validState": "VALID"
         }
       ],
