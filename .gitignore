@@ -8,9 +8,9 @@ __pycache__/
 dist/
 build/
 
-# Generated files (examples, can be regenerated)
-elm_cdcf.json
-test_output.json
+# Root level only (keep examples/)
+/elm_cdcf.json
+/test_output.json
 
 # Check scripts (temporary)
 check_*.py
@@ -18,14 +18,16 @@ find_*.py
 add_*.py
 final_validation.py
 
-# Reference exports (can be regenerated from metamodels)
-Export_*.json
-cids-data.*.json
+# Root level metamodels only (keep examples/meta/)
+/Export_*.json
+/cids-data.*.json
 
-# Keep only source files
-!generate_cdcf.py
-!generate_*.py
-!templates/
-!docs/
-!.gitignore
-!README.md
+# Claude (local config)
+.claude/
+
+# Temporary test scripts
+test_*.py
+
+# Old templates
+/templates_dummy_gen/
+/sf_journal_template.j2

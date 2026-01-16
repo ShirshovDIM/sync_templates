@@ -1,0 +1,421 @@
+[
+  {
+    "diff": null,
+    "prev": null,
+    "current": {
+      "tasks": [
+        {
+          "task_code": "cids-data.elm.elm.cdcf_elm2kafka_bdpelm_journal.produce_data",
+          "task_desc": null,
+          "task_name": "Produce Data",
+          "task_pname": "produce_data",
+          "domain_code": "dDataLoadTask",
+          "task_params": [],
+          "deleted_flag": false,
+          "metatask_code": "mcCDCJournalFlow.mfCDCJournalFlow.mmProduceData",
+          "propvalues_json": {
+            "task_uuid": "095f24b9-9278-541a-a82c-0cb9c0ae2771"
+          },
+          "task_structures": [],
+          "revision_from_id": 17307
+        },
+        {
+          "task_code": "cids-data.elm.elm.cdcf_elm2kafka_bdpelm_journal.split_data",
+          "task_desc": "Parse transaction log and split to",
+          "task_name": "Split Transaction Log",
+          "task_pname": "split_data",
+          "domain_code": "dTransformTask",
+          "task_params": [],
+          "deleted_flag": false,
+          "metatask_code": "mcCDCJournalFlow.mfCDCJournalFlow.mmSplitTransactionLog",
+          "propvalues_json": {
+            "task_uuid": "87d26546-b18c-5395-b540-e7d1b97b1be9"
+          },
+          "task_structures": [],
+          "revision_from_id": 17307
+        },
+        {
+          "task_code": "cids-data.elm.elm.cdcf_elm2kafka_bdpelm_journal.read_db_log",
+          "task_desc": "Read database transaction log from DBMS",
+          "task_name": "Read Transaction Log",
+          "task_pname": "read_db_log",
+          "domain_code": "dDataIngestTask",
+          "task_params": [],
+          "deleted_flag": false,
+          "metatask_code": "mcCDCJournalFlow.mfCDCJournalFlow.mmReadTransactionLog",
+          "propvalues_json": {
+            "task_uuid": "b5453bb5-f808-581f-b2ef-c167bc374f9b"
+          },
+          "task_structures": [],
+          "revision_from_id": 17307
+        }
+      ],
+      "providers": [
+        {
+          "tool_code": "tMssql.2019",
+          "tool_uuid": "7ea2de0e-b9cd-46fa-86a2-bd483edb90eb",
+          "user_code": "u_060y5",
+          "domain_code": "dComponent",
+          "change_stamp": "2026-01-15T15:15:48.417291",
+          "deleted_flag": false,
+          "environments": [
+            {
+              "host_ip": null,
+              "host_pname": null,
+              "port_ncode": null,
+              "domain_code": "dEnvProduction",
+              "deleted_flag": false,
+              "component_code": "bdpss.elm.elm",
+              "connstring_text": null,
+              "propvalues_json": {
+                "authAD": "N"
+              },
+              "environment_code": "bdpss.elm.elm.dEnvProduction",
+              "environment_desc": "elm",
+              "environment_name": "elm",
+              "environment_pname": "elm"
+            }
+          ],
+          "appsystem_code": "bdpss.elm",
+          "component_code": "bdpss.elm.elm",
+          "component_desc": "elm",
+          "component_name": "elm",
+          "revision_to_id": 9999999999,
+          "component_pname": "elm",
+          "propvalues_json": {
+            "time": "00.01.1900  15:30:00",
+            "schedule": "DAILY",
+            "dbtype_code": "msSQL",
+            "component_uuid": "f0ca023a-3dab-556b-874c-bb18503ccd27",
+            "dbtype_version_code": "2019"
+          },
+          "revision_from_id": 17681
+        }
+      ],
+      "appsystems": [
+        {
+          "components": [
+            {
+              "tool_code": "tIceberg",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.db",
+              "component_desc": null,
+              "component_name": "",
+              "component_pname": "cids-data.db",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tKafka",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.tKafka",
+              "component_desc": null,
+              "component_name": "Kafka",
+              "component_pname": "cids-data.tKafka",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tIceberg",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.tIceberg",
+              "component_desc": null,
+              "component_name": "Specification of tables",
+              "component_pname": "cids-data.tIceberg",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tUM.4.0",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.tUM.4.0",
+              "component_desc": null,
+              "component_name": "Database UM4",
+              "component_pname": "cids-data.tUM.4.0",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tMinIO",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.tMinIO",
+              "component_desc": null,
+              "component_name": "Object storage",
+              "component_pname": "cids-data.tMinIO",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tSpark",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.tSpark",
+              "component_desc": null,
+              "component_name": "Data Integration Service Spark",
+              "component_pname": "cids-data.tSpark",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tAirflow",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.tAirflow",
+              "component_desc": null,
+              "component_name": "Data Integration Service Airflow",
+              "component_pname": "cids-data.tAirflow",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tTalys",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.tTalys",
+              "component_desc": null,
+              "component_name": "Data Integration Service Talys",
+              "component_pname": "cids-data.tTalys",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tDebezium",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.cdc.debezium",
+              "component_desc": null,
+              "component_name": "платформа захвата изменений из баз данных",
+              "component_pname": "cdc.debezium",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tKafka",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.broker.kafka",
+              "component_desc": null,
+              "component_name": "Брокер сообщений",
+              "component_pname": "broker.kafka",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tUM.4.0",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.ctrl.um4",
+              "component_desc": null,
+              "component_name": "Управляющий механизм 4 версии",
+              "component_pname": "ctrl.um4",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tMinIO",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.storage.minio",
+              "component_desc": null,
+              "component_name": "Хранилище объектов",
+              "component_pname": "storage.minio",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tSDI",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.stream.sdi",
+              "component_desc": null,
+              "component_name": "Иструмент Streaming Flows системы ",
+              "component_pname": "stream.sdi",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tIceberg",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.db.iceberg",
+              "component_desc": null,
+              "component_name": "База данных ",
+              "component_pname": "db.iceberg",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tAirflow",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.batch.airflow",
+              "component_desc": null,
+              "component_name": "Инструменты Batch Flows системы",
+              "component_pname": "batch.airflow",
+              "propvalues_json": null
+            },
+            {
+              "tool_code": "tSpark",
+              "domain_code": "dComponent",
+              "deleted_flag": false,
+              "environments": [],
+              "appsystem_code": "cids-data",
+              "component_code": "cids-data.batch.spark",
+              "component_desc": null,
+              "component_name": "Аналитический Framework",
+              "component_pname": "batch.spark",
+              "propvalues_json": null
+            }
+          ],
+          "domain_code": "dBusinessSystem",
+          "applications": [
+            {
+              "modules": [
+                {
+                  "domain_code": "dModule",
+                  "module_code": "elm",
+                  "module_desc": "Данные базы данных elm системы-источника elm",
+                  "module_name": "Данные БД [elm] СИ [elm]",
+                  "deleted_flag": false,
+                  "module_pname": "elm__elm",
+                  "appsystem_code": "cids-data",
+                  "module_qn_code": "cids-data.elm.elm",
+                  "module_eng_name": "Data of database [elm] of source system [elm]",
+                  "propvalues_json": {
+                    "module_uuid": "1336ae9c-5e01-5f3b-a195-9e022dca538a",
+                    "origin_source_code": "bdpss.elm.elm"
+                  },
+                  "application_code": "elm",
+                  "revision_from_id": 17682
+                }
+              ],
+              "domain_code": "dApplication",
+              "deleted_flag": false,
+              "appsystem_code": "cids-data",
+              "propvalues_json": null,
+              "application_code": "elm",
+              "application_desc": "EGAR Limits Manager",
+              "application_name": "EGAR Limits Manager",
+              "application_qn_code": "cids-data.elm",
+              "application_eng_name": "EGAR Limits Manager"
+            }
+          ],
+          "deleted_flag": false,
+          "appsystem_code": "cids-data",
+          "appsystem_desc": "Система приложений соедержащая в себе данные из внешних систем источников",
+          "appsystem_name": "ЕИС.Данные систем ",
+          "appsystem_pname": "cids-data",
+          "propvalues_json": null,
+          "appsystem_parent_code": "cids"
+        }
+      ],
+      "domain_code": "dBatchFlow",
+      "metaobjects": [
+        {
+          "user_code": "u_060y5",
+          "module_code": "elm",
+          "change_stamp": "2026-01-15T15:49:17.844791",
+          "deleted_flag": false,
+          "appsystem_code": "cids-data",
+          "metaclass_code": "mcRDO",
+          "revision_to_id": 9999999999,
+          "metaobject_code": "cids-data.elm.elm.dbo__lz_agreement_types",
+          "metaobject_desc": "Справочник типов соглашений (договоров)",
+          "metaobject_name": "dbo__lz_agreement_types",
+          "propvalues_json": {
+            "initFlow": "mfBatchFlow",
+            "reg_time": "15:00",
+            "regularFlow": "mfStandardStreamingFlow"
+          },
+          "application_code": "elm",
+          "entitytype_pname": "dbo__lz_agreement_types",
+          "revision_from_id": 17684
+        },
+        {
+          "user_code": "u_060y5",
+          "module_code": "elm",
+          "change_stamp": "2025-12-22T17:08:54.363375",
+          "deleted_flag": false,
+          "appsystem_code": "cids-data",
+          "metaclass_code": "mcRDO",
+          "revision_to_id": 9999999999,
+          "metaobject_code": "cids-data.elm.elm.dbo__lz_books",
+          "metaobject_desc": "Справочник книг (разделов портефелей)",
+          "metaobject_name": "dbo__lz_books",
+          "propvalues_json": {
+            "initFlow": "mfBatchFlow",
+            "reg_time": "20:00",
+            "regularFlow": "mfStandardStreamingFlow"
+          },
+          "application_code": "elm",
+          "entitytype_pname": "dbo__lz_books",
+          "revision_from_id": 17249
+        }
+      ],
+      "module_code": "elm",
+      "deleted_flag": false,
+      "workflow_code": "cids-data.elm.elm.cdcf_elm2kafka_bdpelm_journal",
+      "workflow_desc": "Загрузка данных системы [elm]",
+      "workflow_name": "Загрузка данных системы [elm]",
+      "appsystem_code": "cids-data",
+      "metaclass_code": "mcCDCJournalFlow",
+      "workflow_pname": "cdcf_elm2kafka_bdpelm_journal",
+      "objectarea_code": "cids-data.ctrl.um4.airflow_control",
+      "propvalues_json": {
+        "metaflow_code": "mfCDCJournalFlow",
+        "flow_uuid": "f8d4d2bd-f138-4519-aa69-54e2635ed701"
+      },
+      "workflow_params": [],
+      "application_code": "elm",
+      "ipcdatabase_type": null,
+      "objectarea_pname": "dummy",
+      "revision_from_id": 17307,
+      "task_transitions": [
+        {
+          "deleted_flag": false,
+          "task_to_code": "cids-data.elm.elm.cdcf_elm2kafka_bdpelm_journal.mmSplitTransactionLog",
+          "orderno_ncode": 1,
+          "task_from_code": "cids-data.elm.elm.cdcf_elm2kafka_bdpelm_journal.mmReadTransactionLog",
+          "procstatus_code": "succeeded",
+          "propvalues_json": {
+            "flowtransition_uuid": "61142c3a-d3a3-40e3-a136-915f5b9fbfcd"
+          },
+          "workflowmode_code": "regular"
+        },
+        {
+          "deleted_flag": false,
+          "task_to_code": "cids-data.elm.elm.cdcf_elm2kafka_bdpelm_journal.mmProduceData",
+          "orderno_ncode": 2,
+          "task_from_code": "cids-data.elm.elm.cdcf_elm2kafka_bdpelm_journal.mmSplitTransactionLog",
+          "procstatus_code": "succeeded",
+          "propvalues_json": {
+            "flowtransition_uuid": "abb46022-6ae7-4544-b8b4-7845eb55c9bb"
+          },
+          "workflowmode_code": "regular"
+        }
+      ],
+      "workflowmode_code": "regular"
+    }
+  }
+]
