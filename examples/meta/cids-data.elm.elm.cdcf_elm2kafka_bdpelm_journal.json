@@ -413,6 +413,17 @@
             "flowtransition_uuid": "abb46022-6ae7-4544-b8b4-7845eb55c9bb"
           },
           "workflowmode_code": "regular"
+        },
+        {
+          "deleted_flag": false,
+          "task_to_code": "kafka_sink",
+          "orderno_ncode": 3,
+          "task_from_code": "cids-data.elm.elm.cdcf_elm2kafka_bdpelm_journal.mmProduceData",
+          "procstatus_code": "succeeded",
+          "propvalues_json": {
+            "flowtransition_uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+          },
+          "workflowmode_code": "regular"
         }
       ],
       "workflowmode_code": "regular"

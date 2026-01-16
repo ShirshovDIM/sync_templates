@@ -31,13 +31,13 @@
                 "changeDt": "{{ current_date }}",
                 "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
                 "createDt": "{{ current_date }}",
-                "diagramDescription": "CDCF Journal MS SQL to Kafka for {{ app_code }}",
+                "diagramDescription": "CDCF Journal MS SQL to Kafka for {{ app_code }}_tst",
                 "diagramId": "{{ diagram_id }}",
                 "diagramKeyFields": [],
                 "diagramNameEntity": {
                     "id": "{{ diagram_id }}",
                     "objectId": "{{ diagram_id }}",
-                    "objectName": "cdcf__mssql2kafka_bdp__{{ app_code }}"
+                    "objectName": "cdcf__mssql2kafka_bdp__{{ app_code }}_tst"
                 },
                 "diagramType": "DEFAULT",
                 "errorResponseFlag": false,
@@ -45,7 +45,7 @@
                 "lastChangeByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
                 "lifeCycleState": "ACTIVE",
                 "metaInfo": {
-                    "nodeCounter": {{ 4 if tables | length > 0 else 3 }}
+                    "nodeCounter": 4
                 },
                 "notificationEmails": [],
                 "saveDiagramMessage": false,
@@ -84,6 +84,21 @@
                         "nodeVersionId": "{{ task_uuids.get('split_data', '') }}"
                     },
                     "prevNodeVersionId": "{{ task_uuids.get('split_data', '') }}"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "linkId": "{{ transition_uuids.get('produce_data__kafka', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890') }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ provider_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ provider_uuid }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ task_uuids.get('produce_data', '') }}"
+                    },
+                    "prevNodeVersionId": "{{ task_uuids.get('produce_data', '') }}"
                 }
             ],
             "nodes": [
@@ -312,7 +327,7 @@
     },
     "rootIdsAndDescriptions": {
         "{{ diagram_id }}": {
-            "{{ diagram_id }}": "cdcf__mssql2kafka_bdp__{{ app_code }} (latest)"
+            "{{ diagram_id }}": "cdcf__mssql2kafka_bdp__{{ app_code }}_tst (latest)"
         }
     }
 }

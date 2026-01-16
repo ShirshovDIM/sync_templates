@@ -185,11 +185,17 @@ class MetaModel:
                 if uuid_val:
                     # Извлекаем суффиксы из task_from_code и task_to_code
                     from_suffix = transition.get('task_from_code', '').split('.')[-1]
-                    to_suffix = transition.get('task_to_code', '').split('.')[-1]
+                    to_code = transition.get('task_to_code', '')
+
+                    # Special case для kafka_sink
+                    if to_code == 'kafka_sink':
+                        to_pname = 'kafka'
+                    else:
+                        to_suffix = to_code.split('.')[-1]
+                        to_pname = metatask_to_pname.get(to_suffix, to_suffix)
 
                     # Получаем task_pname из суффиксов
                     from_pname = metatask_to_pname.get(from_suffix, from_suffix)
-                    to_pname = metatask_to_pname.get(to_suffix, to_suffix)
 
                     # Создаем ключ в формате task_pname__task_pname
                     key = from_pname + '__' + to_pname
