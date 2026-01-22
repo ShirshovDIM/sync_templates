@@ -1,49 +1,17 @@
-{#
-  CDCF Journal Template for MS SQL MultiTable (nodeTypeId: 135)
-
-  Переменные, переданные из Python:
-  - provider_uuid: UUID провайдера (из modules[].propvalues_json.data_provider_uuid)
-  - source_settings_id: source_settings_id из провайдера
-  - source_id: sourceId из appsystems
-  - diagram_id: UUID диаграммы (генерируется новый)
-  - task_uuids: словарь {task_pname: uuid} из tasks[].propvalues_json.task_uuid
-  - transition_uuids: словарь {from__to: uuid} из task_transitions[]
-  - tables: список таблиц [{'schema': ..., 'table': ..., 'full': ...}]
-  - app_code: код приложения (например, 'contact')
-  - module_code: код модуля (например, 'contact2_web')
-
-  Примечание: При рендере нужно добавить uuid_generate глобальную функцию:
-    env.globals['uuid_generate'] = lambda: str(uuid.uuid4())
-#}
-
 {%- set ns = namespace(app_code=app_code, module_code=module_code, diagram_id=diagram_id) -%}
 {%- set ns_current_date = current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000) -%}
-
-{# Fixed key_value table list from reference (public.* tables) #}
 {%- set ns.key_value_tables = "'public.heartbeat', 'public.resolutions', 'public.user_actions', 'public.alfa_capture_transanctions',  'public.client_reports', 'public.sales_users', 'public.lm_clients', 'public.clients', 'public.inbound_containers'" -%}
-
-{# Generate node IDs from task_uuids #}
 {%- set ns.read_db_log_id = task_uuids.get('read_db_log', task_uuids.get('mmReadTransactionLog', '')) -%}
 {%- set ns.split_data_id = task_uuids.get('split_data', task_uuids.get('mmSplitTransactionLog', '')) -%}
-
-{# Generate different nodeVersionId UUIDs for each node #}
 {%- set ns.read_db_log_version_id = uuid_generate() -%}
 {%- set ns.split_data_version_id = uuid_generate() -%}
-
-{# Fixed Kafka node IDs from reference #}
 {%- set ns.kafka_node_id = 'ead5379e-8bf3-4aec-ac55-16eacd0fb8db' -%}
 {%- set ns.kafka_node_version_id = 'fffb45d0-5011-4c9a-a4a9-f7c7fc7b203c' -%}
-
-{# Generate link IDs from transition_uuids or generate new ones #}
 {%- set ns.link_cdc_mapping = transition_uuids.get('read_db_log__split_data', uuid_generate()) -%}
 {%- set ns.link_mapping_kafka = transition_uuids.get('split_data__kafka', uuid_generate()) -%}
-
-{# Generate debezium property row_keys #}
 {%- set ns.debezium_schema_row_key = uuid_generate() -%}
 {%- set ns.debezium_snapshot_row_key = uuid_generate() -%}
 {%- set ns.kafka_tx_row_key = uuid_generate() -%}
-
-{# Generate table row_keys #}
 {%- set ns.table_row_keys = {} -%}
 {%- for tbl in tables -%}
   {%- set _ = ns.table_row_keys.update({tbl.full: uuid_generate()}) -%}
