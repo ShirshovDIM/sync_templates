@@ -1,19 +1,19 @@
 {
     "diagrams": {
-        "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b": {
-            "changeDt": "2026-01-22 13:52:34.343",
-            "createDt": "2026-01-22 13:52:34.343",
+        "3a3c910e-e71a-41b3-b446-279430781b91": {
+            "changeDt": "2026-01-22 13:55:56.745",
+            "createDt": "2026-01-22 13:55:56.745",
             "diagramWithParameters": {
                 "blockFlag": false,
-                "changeDt": "2026-01-22 13:52:34.343",
+                "changeDt": "2026-01-22 13:55:56.745",
                 "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
-                "createDt": "2026-01-22 13:52:34.343",
+                "createDt": "2026-01-22 13:55:56.745",
                 "diagramDescription": "CDCF Journal MS SQL to Kafka for contact_contact2_web",
-                "diagramId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b",
+                "diagramId": "3a3c910e-e71a-41b3-b446-279430781b91",
                 "diagramKeyFields": [],
                 "diagramNameEntity": {
-                    "id": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b",
-                    "objectId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b",
+                    "id": "3a3c910e-e71a-41b3-b446-279430781b91",
+                    "objectId": "3a3c910e-e71a-41b3-b446-279430781b91",
                     "objectName": "cdcf__contact2kafka_bdp__contact__contact2_web__journal"
                 },
                 "diagramType": "DEFAULT",
@@ -27,50 +27,50 @@
                 "notificationEmails": [],
                 "saveDiagramMessage": false,
                 "treatTerminalStateAsInitial": false,
-                "versionId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b",
+                "versionId": "3a3c910e-e71a-41b3-b446-279430781b91",
                 "versionName": "latest",
                 "versionType": "LATEST"
             },
             "links": [
                 {
-                    "linkId": "4638f9be-313b-43d4-83b7-68c13fc87a42",
+                    "linkId": "b67e2a94-1bc8-4e13-bed0-a059e5ab86f4",
                     "diagramVersion": {
-                        "versionId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b"
+                        "versionId": "3a3c910e-e71a-41b3-b446-279430781b91"
                     },
-                    "diagramVersionId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b",
+                    "diagramVersionId": "3a3c910e-e71a-41b3-b446-279430781b91",
                     "prevNode": {
-                        "nodeVersionId": "c4104803-a855-460b-a6a9-6407ec02ca58"
+                        "nodeVersionId": "30b66dd1-ea8f-40c1-975e-664b8b146b65"
                     },
-                    "prevNodeVersionId": "c4104803-a855-460b-a6a9-6407ec02ca58",
+                    "prevNodeVersionId": "30b66dd1-ea8f-40c1-975e-664b8b146b65",
                     "nextNode": {
                         "nodeVersionId": "fffb45d0-5011-4c9a-a4a9-f7c7fc7b203c"
                     },
                     "nextNodeVersionId": "fffb45d0-5011-4c9a-a4a9-f7c7fc7b203c"
                 },
                 {
-                    "linkId": "70c09df1-7e00-42da-8c05-86ba1ffc2992",
+                    "linkId": "9a055f28-21a8-44b9-b713-ade21d576cfb",
                     "diagramVersion": {
-                        "versionId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b"
+                        "versionId": "3a3c910e-e71a-41b3-b446-279430781b91"
                     },
-                    "diagramVersionId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b",
+                    "diagramVersionId": "3a3c910e-e71a-41b3-b446-279430781b91",
                     "prevNode": {
-                        "nodeVersionId": "1120a135-361f-4ef9-bc2e-d37e333f9468"
+                        "nodeVersionId": "d385dd8e-5a73-4d36-9746-49b2c668f940"
                     },
-                    "prevNodeVersionId": "1120a135-361f-4ef9-bc2e-d37e333f9468",
+                    "prevNodeVersionId": "d385dd8e-5a73-4d36-9746-49b2c668f940",
                     "nextNode": {
-                        "nodeVersionId": "c4104803-a855-460b-a6a9-6407ec02ca58"
+                        "nodeVersionId": "30b66dd1-ea8f-40c1-975e-664b8b146b65"
                     },
-                    "nextNodeVersionId": "c4104803-a855-460b-a6a9-6407ec02ca58"
+                    "nextNodeVersionId": "30b66dd1-ea8f-40c1-975e-664b8b146b65"
                 }
             ],
             "nodes": [
                 {
-                    "nodeVersionId": "c4104803-a855-460b-a6a9-6407ec02ca58",
+                    "nodeVersionId": "30b66dd1-ea8f-40c1-975e-664b8b146b65",
                     "nodeId": "87d26546-b18c-5395-b540-e7d1b97b1be9",
                     "diagramVersion": {
-                        "versionId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b"
+                        "versionId": "3a3c910e-e71a-41b3-b446-279430781b91"
                     },
-                    "diagramVersionId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b",
+                    "diagramVersionId": "3a3c910e-e71a-41b3-b446-279430781b91",
                     "nodeTypeId": 104,
                     "nodeName": "key_value__allocation",
                     "jsonProperty": {
@@ -85,7 +85,7 @@
                                 "alias": "table_name"
                             },
                             {
-                                "expression": "cast( case  when table_name in  ('dbo.contact_log')  then\\n        IF(json_value(data, '$.op') = 'd', json_value(data, '$.before.id'), json_value(data, '$.after.id'))  end as string )",
+                                "expression": "cast( case  when table_name in  ('public.heartbeat', 'public.resolutions', 'public.user_actions', 'public.alfa_capture_transanctions',  'public.client_reports', 'public.sales_users', 'public.lm_clients', 'public.clients', 'public.inbound_containers')  then\\n        IF(json_value(data, '$.op') = 'd', json_value(data, '$.before.id'), json_value(data, '$.after.id'))  end as string )",
                                 "alias": "key_value"
                             },
                             {
@@ -114,12 +114,12 @@
                     "displayType": "Трансформация - Простая - Маппинг"
                 },
                 {
-                    "nodeVersionId": "1120a135-361f-4ef9-bc2e-d37e333f9468",
+                    "nodeVersionId": "d385dd8e-5a73-4d36-9746-49b2c668f940",
                     "nodeId": "b5453bb5-f808-581f-b2ef-c167bc374f9b",
                     "diagramVersion": {
-                        "versionId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b"
+                        "versionId": "3a3c910e-e71a-41b3-b446-279430781b91"
                     },
-                    "diagramVersionId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b",
+                    "diagramVersionId": "3a3c910e-e71a-41b3-b446-279430781b91",
                     "nodeTypeId": 135,
                     "nodeName": "cdc__contact__contact2_web",
                     "jsonProperty": {
@@ -133,19 +133,19 @@
                         "include_schema": false,
                         "tables": [{
                                 "name": "dbo.contact_log",
-                                "row_key": "77309072-e239-43ec-8c65-9aaf9d30fda3"
+                                "row_key": "c3a90eb1-06d1-4473-adc0-20c01f6c0568"
                             }],
                         "debezium": {
                             "properties": [
                                 {
                                     "name": "schema.include.list",
                                     "value": "dbo",
-                                    "row_key": "1e0960a8-584f-4c9e-84d8-00c1c727def0"
+                                    "row_key": "bced77d2-d3ec-4cbf-b20e-3c8f57ab674e"
                                 },
                                 {
                                     "name": "snapshot.mode",
                                     "value": "no_data",
-                                    "row_key": "5fe47daa-5d72-427e-9972-73e45cf594f6"
+                                    "row_key": "a87cc9b4-fa08-4e1e-9fdf-1cca94d2bf70"
                                 }
                             ]
                         }
@@ -165,9 +165,9 @@
                     "nodeVersionId": "fffb45d0-5011-4c9a-a4a9-f7c7fc7b203c",
                     "nodeId": "ead5379e-8bf3-4aec-ac55-16eacd0fb8db",
                     "diagramVersion": {
-                        "versionId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b"
+                        "versionId": "3a3c910e-e71a-41b3-b446-279430781b91"
                     },
-                    "diagramVersionId": "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b",
+                    "diagramVersionId": "3a3c910e-e71a-41b3-b446-279430781b91",
                     "nodeTypeId": 103,
                     "nodeName": "kafka__contact__contact2_web",
                     "jsonProperty": {
@@ -201,7 +201,7 @@
                                     {
                                         "name": "transaction.timeout.ms",
                                         "value": "900000",
-                                        "row_key": "cb39f931-19ff-421c-b092-f7f486f435d5"
+                                        "row_key": "ac40f2d6-f38b-48d8-8177-35d739455543"
                                     }
                                 ]
                             }
@@ -222,13 +222,13 @@
             ],
             "variableLinkAssociations": [],
             "variableNodeAssociations": [],
-            "changeDt": "2026-01-22 13:52:34.343",
-            "createDt": "2026-01-22 13:52:34.343"
+            "changeDt": "2026-01-22 13:55:56.745",
+            "createDt": "2026-01-22 13:55:56.745"
         }
     },
     "rootIdsAndDescriptions": {
-        "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b": {
-            "78f7301b-a5ff-41ed-a45f-a5b6885d4d1b": "cdcf__contact2kafka_bdp__contact__contact2_web__journal (latest)"
+        "3a3c910e-e71a-41b3-b446-279430781b91": {
+            "3a3c910e-e71a-41b3-b446-279430781b91": "cdcf__contact2kafka_bdp__contact__contact2_web__journal (latest)"
         }
     }
 }

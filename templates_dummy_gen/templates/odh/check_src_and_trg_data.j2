@@ -1,0 +1,128 @@
+{%- set upload_method = metaobject.propvalues_json.upload_method -%}
+
+{%- set target_metastructure_code = [
+    'msDimMirror',
+    'mcMirrorComplex',
+    'msComplexHistSource',
+    'msComplexHistSourceSensitive',
+    'msDimSource',
+    'msFactSource',
+    'msComplexSource',
+    'msComplexSourceSensitive'
+] -%}
+{%- set source = namespace(struct=none, attributes=[], keys=[], filter=none) -%}
+{%- set target = namespace(struct=none, attributes=[], keys=[]) -%}
+
+{%- set source_format = namespace(structure_name=none, attributes=[]) -%}
+{%- set target_format = namespace(system=none, attributes=[]) -%}
+{%- set all_attributes = namespace(value=[]) -%}
+{%- set join_conditions = namespace(value=[]) -%}
+{%- set where_clause = namespace(key_value=[], decode_value=[]) -%}
+
+{%- for task in metaobject.tasks -%}
+    {%- for s in task.task_structures -%}
+        {%- if 'DataSrcDefinition' in s.structure.metastructure_code -%}
+            {%- set source.struct = s.structure -%}
+            {%- set match = re.search('WHERE(.*)', s.structure.propvalues_json.sql, re.DOTALL) %}
+            {%- if match -%}
+                {%- set source.filter = match.group(1).strip() -%}
+            {%- endif -%}
+        {%- elif s.structure.metastructure_code in target_metastructure_code -%}
+            {%- set target.struct = s.structure -%}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endfor -%}
+
+{%- macro initialize_select_attributes(structure, use_cte=False) -%}
+    {%- if 'DataSrcDefinition' in structure.metastructure_code %}     
+        {%- for a in structure.attributes|sort(attribute='orderno_ncode') %}
+            {%- if a.domain_code == 'dSourceKeyColumn' -%}
+                {%- do source.keys.append(a.attribute_pname | upper) -%}
+            {%- endif -%}
+        
+            {% if a.propvalues_json['conversion']  -%}
+                {%- set local_attr = ( a.propvalues_json['conversion'] | upper ) -%}
+            {%- else -%}
+                {%- set local_attr = ( a.attribute_pname | upper ) -%}
+            {%- endif %}
+        
+            {%- do source.attributes.append(a.attribute_pname | upper ) -%}
+            {%- do source_format.attributes.append(local_attr) -%}
+        {%- endfor %}
+            {%- set source_format.structure_name = (structure.propvalues_json.source_schema ~ '.' ~ structure.propvalues_json.real_entity_name) | upper -%}
+    {%- else %}
+        {% for a in structure.attributes|selectattr('baseattribute_code', 'eq', None)|sort(attribute='orderno_ncode') %}
+            {%- if not a.attribute_pname.endswith('_hash') -%}
+                {%- set local_attr = ( a.attribute_pname | upper ) -%}
+                {%- do target.attributes.append(local_attr) -%}
+                {%- do target_format.attributes.append(local_attr) -%}
+            {% endif %}
+        {%- endfor -%}
+        {%- set name = (metaobject.propvalues_json['source_code'] | string + structure.structure_pname | replace(metaobject.entitytype_pname, '') | replace('_pii', '')) | upper -%}
+        {%- set target_format.structure_name = (structure.objectarea_pname ~ metaobject.propvalues_json['source_code'] ~ '.' ~ name) | upper -%}
+    {%- endif %}
+{%- endmacro -%}
+
+{%- macro get_all_attr(list1, list2) %}
+  {%- if list1 | length != list2 | length %}
+    <error>Списки разной длины</error>
+  {%- else %}
+    {%- for index in range(list1 | length) %}
+        {%- do all_attributes.value.append('src.' ~ list1[index] ~ ', ' ~ 'trg.' ~ list2[index]) -%}
+    {%- endfor %}
+  {%- endif %}
+{%- endmacro %}
+
+{%- macro get_join_and_null_for_pk(list_pk, list1, list2) -%}
+    {%- if list1 | length != list2 | length %}
+        <error>Списки разной длины</error>
+    {%- else %}
+        {%- set ns_local = namespace(attr_for_join=[], attr_for_null=[]) %}
+        {%- set non_keys = namespace(attr=[]) -%}
+    {%- for index in range(list2 | length) -%}
+        {%- if list1[index] in list_pk -%}
+            {%- set join_condition = "nvl(src." ~ list1[index] ~ ", '0') = nvl(trg." ~ list2[index] ~ ", '0')" -%}
+            {%- do join_conditions.value.append(join_condition) -%}
+            {%- set for_null = "trg." ~ list2[index] ~ " is null" -%}
+            {%- do where_clause.key_value.append(for_null) -%}
+        {% else %}
+            {%- set local_variable_for_decode = "decode(src." ~ list1[index] ~ ", trg." ~ list2[index]  ~ ", 0, 1) = 1" -%}
+            {%- do where_clause.decode_value.append(local_variable_for_decode) -%}
+        {%- endif -%}
+    {%- endfor -%}
+    {%- endif -%}
+{%- endmacro -%}
+
+
+{%- do initialize_select_attributes(source.struct) -%}
+{%- do initialize_select_attributes(target.struct) -%}
+{%- do get_all_attr(source.attributes, target.attributes) -%}
+{%- do get_join_and_null_for_pk(source.keys, source.attributes, target.attributes) -%}
+
+with src as(
+    select
+        {{ source_format.attributes | join(',\n') | indent(8)  }}
+    from
+        {{ source_format.structure_name }}
+    {%- if upload_method != 'mmIngestSnapshot' %}
+    where
+        {{ source.filter | indent(8) }}
+    {%- endif %}
+),
+trg as (
+    select
+        {{ target_format.attributes | join(',\n') | indent(8) }}
+    from
+        {{ target_format.structure_name }}
+    where
+        nvl(DWSARCHIVE, 'N') <> 'D'
+)
+
+select
+    {{ all_attributes.value | join(',\n') | indent(4) }}
+from src
+left join trg
+    on {{ join_conditions.value | join(',\nAND ') | indent(4) }}
+where
+    {%- do where_clause.decode_value.append(where_clause.key_value[0]) %}
+    {{ where_clause.decode_value | sort(reverse=True) | join('\nOR ') | indent(4) }}

@@ -1,0 +1,48 @@
+{%- if 'mcRDO.msReplicaDataObject' in structure.metastructure_code and 'eq' in metaobject.application_code -%}
+{
+  "schemaId": "{{ structure.propvalues_json.structure_uuid }}",
+  "versionId": "{{ structure.propvalues_json.structure_uuid }}",
+  "name": "eq__{{ structure.structure_pname.split('__')[0] }}__mask",
+  "createDt": "{{ (current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000))  }}",
+  "changeDt": "{{ (current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000))  }}",
+  "createByUser": "PUMA",
+  "lastChangeByUser": "PUMA",
+  "schemaJson": {
+    "type": "record",
+    "name": "newSchema",
+    "namespace": "ru.glowbyte.streaming",
+    "fields": [
+    {%- for attr in structure.attributes if 'dSource' in attr.domain_code%}
+      {%- if attr.tooldatatype_code == "timestamp_ntz" %}
+        {
+          "name": "{{ attr.attribute_pname | lower }}",
+          "type": {
+            "type": "string",
+            "logicalType": "stringTimestamp"
+          }
+        }
+       {%- elif attr.tooldatatype_code == "decimal" %}
+        {
+          "name": "{{ attr.attribute_pname | lower }}",
+          "type": {
+            "type": "bytes",
+            "logicalType": "decimal",
+            "precision": {{ attr.precision_size }},
+            "scale": {{ attr.scale_size if attr.scale_size is not none else 0 }}
+          }
+        }
+      {%- else -%}
+        {
+          "name": "{{ attr.attribute_pname | lower }}",
+          "type": [
+            "{{ attr.tooldatatype_code }}",
+            "null"
+          ]
+        }
+      {%- endif -%}
+      {%- if not loop.last %},{% endif %}
+    {%- endfor %}
+    ]
+  }
+}
+{%- endif -%}

@@ -1,0 +1,57 @@
+{%- if 'mcRDO.msSourceDefinition' in structure.metastructure_code and 'eq' in metaobject.application_code -%}
+{
+  "schemaId": "{{ structure.propvalues_json.structure_uuid }}",
+  "versionId": "{{ structure.propvalues_json.structure_uuid }}",
+  "name": "eq__{{ structure.structure_pname.split('__')[0] }}__source",
+  "createDt": "{{ (current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000)) }}",
+  "changeDt": "{{ (current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000)) }}",
+  "createByUser": "PUMA",
+  "lastChangeByUser": "PUMA",
+  "schemaJson": {
+    "type": "record",
+    "name": "newSchema",
+    "namespace": "ru.glowbyte.streaming",
+    "fields": [
+    {%- for attr in structure.attributes %}
+       {%- if attr.tooldatatype_code == "decimal" %}
+        {
+            "name": "{{ attr.attribute_pname | upper }}",
+            "type": {
+                "type": "bytes",
+                "logicalType": "decimal",
+                "precision": {{ attr.precision_size }},
+                "scale": {{ attr.scale_size if attr.scale_size is not none else 0 }}
+          }
+        },
+        {%- else -%}
+        {
+            "name": "{{ attr.attribute_pname | upper }}",
+            "type": [
+            {%- if attr.tooldatatype_code == "timestamp_ntz" %}
+            "string"
+            {%- else %}
+            "{{ attr.tooldatatype_code }}"
+            {%- endif %},
+          "null"
+        ]
+      },{%- endif %}
+    {%- endfor %}
+      {
+        "name": "eqTimestamp",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      {
+        "name": "actionType",
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    ]
+  }
+}
+
+{%- endif -%}

@@ -1,0 +1,95 @@
+{%- set required_tech_columns = namespace(
+    values=[
+        "job_insert_id",
+        "job_cdc_id",
+        "deleted_flag",
+        "sys_insert_stamp",
+        "src_modified_stamp",
+        "opertype_last_code"
+    ]
+) -%}
+
+{%- set cdc_structure = namespace(objectarea_pname=none, structure_pname=none, attributes=none) -%}
+
+{%- for structure in metaobject.structures -%}
+    {%- if structure.metastructure_code == "mcRDO.msChangeDataCapture" -%}
+        {%- set cdc_structure.objectarea_pname = structure.objectarea_pname -%}
+        {%- set cdc_structure.structure_pname = structure.structure_pname -%}
+        {%- set cdc_structure.attributes = structure.attributes -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- set full_table_name = cdc_structure.objectarea_pname ~ "." ~ cdc_structure.structure_pname %}
+{%- set columns = namespace(values=[]) -%}
+{%- set partitions = namespace(values=[]) -%}
+{%- set tblproperties = namespace(values=[]) -%}
+{%- set identifier_fields = namespace(values=[]) -%}
+{%- set sort_order_expressions = namespace(values=[]) -%}
+
+{%- for attr in cdc_structure.attributes %}
+    {%- if not attr.domain_code.startswith("dMeta") -%}
+        {%- set column_string = "    " ~ attr.attribute_pname ~ " " ~ attr.tooldatatype_code | upper -%}
+        {% if attr.attribute_desc %}
+            {%- set column_string = column_string ~ " COMMENT " ~ "'" ~ attr.attribute_desc ~ "'" -%}
+        {%- endif -%}
+
+        {%- if attr.tooldatatype_code == "timestamp" -%}
+            {%- set _ = tblproperties.values.append("\t'write.metadata.metrics.column." ~ attr.attribute_pname ~ "'='full'") -%}
+        {%- endif -%}
+
+        {%- set _ = columns.values.append(column_string) -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- for attr in cdc_structure.attributes %}
+    {%- if attr.domain_code.startswith("dMeta") -%}
+        {%- set attribute_name = attr.attribute_pname -%}
+        {%- set attribute_type = attr.tooldatatype_code -%}
+
+        {%- if attr.tooldatatype_code == "timestamp" -%}
+            {%- set attribute_type = "timestamp_ntz" -%}
+        {%- endif -%}
+
+        {%- set column_string = "    " ~ attribute_name ~ " " ~ attribute_type | upper -%}
+
+            {%- if attribute_name in required_tech_columns.values -%}
+                {%- set column_string  = column_string ~ " NOT NULL" -%}
+            {%- endif -%}
+
+            {% if attr.attribute_desc %}
+                {%- set column_string = column_string ~ " COMMENT " ~ "'" ~ attr.attribute_desc ~ "'" -%}
+            {%- endif -%}
+
+        {%- set _ = columns.values.append(column_string) -%}
+        {%- set _ = tblproperties.values.append("\t'write.metadata.metrics.column." ~ attr.attribute_pname ~ "'='full'") -%}
+    {%- endif -%}
+{%- endfor -%}
+
+DROP TABLE IF EXISTS {{ full_table_name }} PURGE;
+
+CREATE OR REPLACE TABLE {{ full_table_name }} (
+{{ columns.values | join(",\n") }}
+)
+USING ICEBERG
+PARTITIONED BY (day(src_modified_stamp))
+{% if TABLE_DESCRIPTION -%}
+COMMENT '{{ TABLE_DESCRIPTION }}'
+{% endif -%}
+TBLPROPERTIES (
+    'format-version'='2',
+    'write.format.default'='parquet',
+    'write.parquet.compression-codec'='zstd',
+    'write.parquet.compression-level'='3',
+    'flink.max-continuous-empty-commits'='1',
+    'write.target-file-size-bytes'='536870912',
+    'write.parquet.row-group-size-bytes'='134217728',
+    'read.split.target-size'='134217728',
+    'write.distribution-mode'='hash',
+    'write.metadata.delete-after-commit.enabled'='true',
+    'write.metadata.previous-versions-max'='100',
+    'read.parquet.vectorization.enabled'='true',
+    'write.metadata.metrics.default'='none',
+{{ tblproperties.values | join(",\n") }}
+);
+
+ALTER TABLE {{ full_table_name }} WRITE DISTRIBUTED BY PARTITION LOCALLY ORDERED BY src_modified_stamp ASC NULLS LAST;

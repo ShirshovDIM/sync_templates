@@ -1,0 +1,433 @@
+{%- if "mfJMONInitialFlow" in flow.metaflow_code and "eq" in metaobject.application_code -%}
+
+{%- set meta_domains = ["dMeta"] -%}
+{%- set source_domains = ["dSourceKeyColumn", "dSourceColumn"] -%}
+{%- set target_domains = ["dSourceKeyColumn", "dSourceColumn", "dSourceMaskedColumn", "dSourceHashedColumn"] -%}
+
+{%- set schema = metaobject.application_code -%}
+{%- set table = metaobject.entitytype_pname -%}
+
+{%- set diagram_id = flow.propvalues_json.flow_uuid -%}
+
+{%- set consume_node = namespace(flowtask_uuid=None, task=none) -%}
+{%- set protect_node = namespace(flowtask_uuid=None, task=none, source_attributes=[], target_attributes=[], script_lines=[], processed=[]) -%}
+{%- set enrich_node = namespace(flowtask_uuid=None, task=none) -%}
+{%- set load_node = namespace(flowtask_uuid=None, task=none) -%}
+
+{%- set source_schema = namespace(id=none) -%}
+{%- set mask_schema = namespace(id=none) -%}
+
+{%- set consume_protect = namespace(uuid=none, flowtask_to=none, flowtask_from=none) -%}
+{%- set protect_enrich = namespace(uuid=none, flowtask_to=none, flowtask_from=none) -%}
+{%- set enrich_load = namespace(uuid=none, flowtask_to=none, flowtask_from=none) -%}
+
+{%- for task in flow.flowtasks -%}
+    {%- if task.metaflowtask_code == "mcRDO.mfJMONInitialFlow.mmEnrichTechCols" -%}
+        {%- set enrich_node.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set enrich_node.task = task -%}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONInitialFlow.mmHideSensitiveData" -%}
+        {%- set protect_node.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set protect_node.task = task -%}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONInitialFlow.mmLoadTargetData" -%}
+        {%- set load_node.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set load_node.task = task -%}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONInitialFlow.mmConsumeData" -%}
+        {%- set consume_node.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set consume_node.task = task -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- for structure in metaobject.structures -%}
+    {%- if structure.metastructure_code == "mcRDO.msSourceDefinition" -%}
+        {%- set source_schema.id = structure.propvalues_json.structure_uuid -%}
+    {%- elif structure.metastructure_code == "mcRDO.msReplicaDataObject" -%}
+        {%- set mask_schema.id = structure.propvalues_json.structure_uuid -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- for structure in protect_node.task.flowtask_structures -%}
+    {%- for attr in structure.structure.attributes -%}
+        {%- if attr.domain_code in source_domains and (not attr.attribute_pname.endswith("_mask") or (not attr.attribute_pname.endswith("_hash"))) -%}
+            {%- if attr.attribute_pname not in protect_node.source_attributes -%}
+                {%- set _ = protect_node.source_attributes.append(attr.attribute_pname) -%}
+            {%- endif -%}
+        {%- endif -%}
+        {%- if attr.domain_code in target_domains -%}
+            {%- if attr.attribute_pname not in protect_node.target_attributes -%}
+                {%- set _ = protect_node.target_attributes.append(attr.attribute_pname) -%}
+            {%- endif -%}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endfor -%}
+
+{%- set output_structure = namespace(struct=none) -%}
+{%- for struct in protect_node.task.flowtask_structures -%}
+  {%- if output_structure.struct is none and struct.get('directiontype_code') == 'output' -%}
+    {%- set output_structure.struct = struct -%}
+  {%- endif -%}
+{%- endfor -%}
+
+{%- if output_structure.struct is none -%}
+  {%- for struct in protect_node.task.flowtask_structures -%}
+    {%- if output_structure.struct is none and struct.get('metaobject') -%}
+      {%- set output_structure.struct = struct -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+{%- if output_structure.struct is not none -%}
+  {%- set attributes = output_structure.struct.structure.attributes -%}
+{%- for attr in attributes -%}
+  {%- if attr_pname not in protect_node.processed -%}
+    {%- set attr_name = attr.attribute_name -%}
+    {%- set attr_pname = attr.attribute_pname -%}
+    {%- set attr_domain = attr.domain_code -%}
+    {%- set tool_type = attr.tooldatatype_code -%}
+    {%- set base_type = attr.basedatatype_code -%}
+    {%- set src_upper = attr_name | upper -%}
+    {%- set _ = protect_node.processed.append(attr_pname) -%}
+
+    {%- if not attr_domain.startswith('dMeta') -%}
+
+      {%- if attr_domain in source_domains %}
+        {%- if tool_type == 'timestamp' or 'bdtTimestamp' in base_type -%}
+          {%- set line = attr_name ~ ' = LocalDateTime.parse(' ~ src_upper ~ ', DateTimeFormatter.ofPattern(\\"yyyy-MM-dd HH:mm:ss.SSSSSS\\"))' -%}
+        {%- else -%}
+          {%- set line = attr_name  ~ ' = '  ~ src_upper -%}
+        {%- endif -%}
+        {%- set _ = protect_node.script_lines.append(line) -%}
+      {%- elif attr_domain == 'dSourceMaskedColumn' -%}
+        {%- set line = attr_name ~ '_mask = protector.maskData(\'' ~ attr_name ~ '\', ' ~ src_upper ~ ')' -%}
+        {%- set _ = protect_node.script_lines.append(line) -%}
+      {%- elif attr_domain == 'dSourceHashedColumn' -%}
+        {%- set line = attr_name ~ '_hash = (' ~ src_upper ~ ' == null) ? null : (' ~ src_upper ~ '.trim() == \'\') ? null : protector.hashData(\'' ~ attr_name ~ '\', ' ~ src_upper ~ '.trim())' -%}
+        {%- set _ = protect_node.script_lines.append(line) -%}
+      {%- endif -%}
+
+      {%- if attr_domain in source_domains and not (attr_name.endswith('_mask') or attr_name.endswith('_hash')) -%}
+        {%- if attr_name not in protect_node.source_attributes -%}
+          {%- set _ = protect_node.source_attributes.append(attr_name) -%}
+        {%- endif -%}
+      {%- endif -%}
+
+      {%- if attr_domain in target_domains -%}
+        {%- if attr_name not in protect_node.target_attributes -%}
+          {%- set _ = protect_node.target_attributes.append(attr_name) -%}
+        {%- endif -%}
+      {%- endif -%}
+    {%- endif -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+
+{%- set protection_script = protect_node.script_lines | join('\\n') -%}
+
+{%- for transition in flow.flowtransitions -%}
+    {%- if transition.flowtask_from_code.endswith(".consume_data") and transition.flowtask_to_code.endswith(".protect_data") -%}
+        {%- set consume_protect.uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- endif -%}
+
+    {%- if transition.flowtask_from_code.endswith(".protect_data") and transition.flowtask_to_code.endswith(".enrich_techcols") -%}
+        {%- set protect_enrich.uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- endif -%}
+
+    {%- if transition.flowtask_from_code.endswith(".enrich_techcols") and transition.flowtask_to_code.endswith(".load_target") -%}
+        {%- set enrich_load.uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{
+    "diagrams": {
+        "{{ diagram_id }}": {
+            "diagramWithParameters": {
+                "lifeCycleState": "ACTIVE",
+                "versionId": "{{ diagram_id }}",
+                "versionName": "latest",
+                "versionType": "LATEST",
+                "diagramId": "{{ diagram_id }}",
+                "diagramNameEntity": {
+                    "id": "{{ diagram_id }}",
+                    "objectId": "{{ diagram_id }}",
+                    "objectName": "{{ schema | upper }}_INITIAL_{{ table | upper }}"
+                },
+                "createDt": "{{ (current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000)) }}",
+                "changeDt": "{{ (current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000)) }}",
+                "lastChangeByUser": "8f533ad1-0f64-46e5-b7fb-1f147bd67993",
+                "createByUser": "8f533ad1-0f64-46e5-b7fb-1f147bd67993",
+                "blockFlag": false,
+                "errorResponseFlag": false,
+                "treatTerminalStateAsInitial": false,
+                "diagramDescription": "Diagram for initializing loading from {{ table | upper }}, {{ schema | upper }} source.",
+                "metaInfo": {
+                    "nodeCounter": 4
+                },
+                "saveDiagramMessage": false,
+                "diagramType": "DEFAULT",
+                "notificationEmails": [],
+                "inOutParameters": [],
+                "diagramKeyFields": []
+            },
+            "nodes": [
+                {
+                    "nodeVersionId": "{{ enrich_node.flowtask_uuid }}",
+                    "nodeId": "{{ enrich_node.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 111,
+                    "nodeName": "{{ table | lower }}_rdo_meta",
+                    "nodeDescription": "Mapping and filling in the technical attributes of the RDO structure",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import java.time.LocalDateTime\nimport java.time.format.DateTimeFormatter\nimport java.time.temporal.ChronoUnit\n\njob_insert_id = (long) -1\njob_update_id = (long) -1\njob_cdc_id = (long) __CONFIG__.get(\"job.instance_id\") \ntrx_id = null\ncsn_id = null\nbroker_partition_id = (long) BROKER_PARTITION\nbroker_offset_id = (long) BROKER_OFFSET_ID\ndeleted_flag = (actionType == 'DELETE') ? true : false\nsys_insert_stamp = null\nsys_update_stamp = LocalDateTime.now().plusHours(3)\nsrc_modified_stamp = LocalDateTime.parse(eqTimestamp, DateTimeFormatter.ofPattern(\"yyyy-MM-dd HH:mm:ss.SSSSSS\"))\nopertype_last_code = \"X\"",
+                        "schema_id": "e48c1f44-f6e6-46c1-a304-7b45e9265146",
+                        "schema_version_id": "0aeb91a7-95f0-1018-8195-f1909ba0030f",
+                        "in": [
+                            "BROKER_PARTITION",
+                            "BROKER_OFFSET_ID",
+                            "eqTimestamp",
+                            "actionType"
+                        ],
+                        "out": [
+                            "job_insert_id",
+                            "job_update_id",
+                            "job_cdc_id",
+                            "trx_id",
+                            "csn_id",
+                            "broker_partition_id",
+                            "broker_offset_id",
+                            "deleted_flag",
+                            "sys_insert_stamp",
+                            "sys_update_stamp",
+                            "src_modified_stamp",
+                            "opertype_last_code"
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": -780843001,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2009,
+                            "y": 313
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Кастомная - Groovy"
+                },
+                  {
+                    "nodeVersionId": "{{ protect_node.flowtask_uuid }}",
+                    "nodeId": "{{ protect_node.flowtask_uuid }}",
+                    "diagramVersion": {
+                      "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 111,
+                    "nodeName": "{{ table | lower }}_protection",
+                    "nodeDescription": "The masking and hashing block for {{ table | upper }} data",
+                    "jsonProperty": {
+                      "nodeType": "111",
+                      "script_text": "import java.time.format.DateTimeFormatter;\nimport com.alfa.DataProtection;\nimport java.time.LocalDateTime;\nimport com.fasterxml.jackson.databind.ObjectMapper;\n\ndef (\nicebergDatabase, icebergTableName, metaDataBaseSdiName,\nsaltIcebergSdiName, sourceDatabaseName, sourceTableName\n) = [\n\"bdp__wallet\", \"md_hashrules\", \"UM\",\n\"iceberg_bdp\", \"{{ schema | lower }}\", \"{{ table | lower }}\"\n]\n\ndef properties = __PROPERTIES__\ndef s3Params = [\n\"bucketName\": \"nova\",\n\"maskingJarPath\": \"libs/masking/masking-functions-1.0-SNAPSHOT.jar\",\n]\n\n@Singleton(lazy = true)\nclass LocalDataProtector {\nDataProtection protector\nprivate static boolean isInitialized = false\nstatic LocalDataProtector initialize(\nicebergDatabase,icebergTableName,metaDataBaseSdiName,saltIcebergSdiName,\nproperties,sourceDatabaseName,sourceTableName,s3Params\n) {\nLocalDataProtector instance = LocalDataProtector.instance\nif (!isInitialized) {\ninstance.protector = new DataProtection.Builder()\n.setIcebergDatabase(icebergDatabase).setIcebergTableName(icebergTableName)\n.setMetaDataBaseSdiName(metaDataBaseSdiName).setS3Params(s3Params)\n.setProperties(properties).setSourceDatabaseName(sourceDatabaseName)\n.setSourceTableName(sourceTableName).setSaltIcebergSdiName(saltIcebergSdiName)\n.build()\nisInitialized = true\n}\nreturn instance\n}\n}\n\ndef protector = LocalDataProtector.initialize(\nicebergDatabase,icebergTableName,metaDataBaseSdiName,saltIcebergSdiName,\nproperties,sourceDatabaseName,sourceTableName,s3Params,\n).protector\n\n{%- for line in protect_node.script_lines %}{{ line }}{{ "\\n" if not loop.last }}{%- endfor %}",
+                      "schema_id": "{{ mask_schema.id }}",
+                      "schema_version_id": "{{ mask_schema.id }}",
+                      "in": [
+                        {%- for attr in protect_node.source_attributes %}
+                          "{{ attr | upper }}"{{ "," if not loop.last }}
+                        {%- endfor %}
+                      ],
+                      "out": [
+                        {%- for attr in protect_node.target_attributes %}
+                          "{{ attr }}"{{ "," if not loop.last }}
+                        {%- endfor %}
+                      ],
+                      "execution_options": {
+                        "logging": true,
+                        "start_new_chain": false
+                      }
+                    },
+                    "jsonPropertyHashCode": 594391308,
+                    "validState": "VALID",
+                    "metaInfo": {
+                      "position": {
+                        "x": 1513,
+                        "y": 313
+                      }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Кастомная - Groovy"
+                },
+                {
+                    "nodeVersionId": "{{ load_node.flowtask_uuid }}",
+                    "nodeId": "{{ load_node.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 121,
+                    "nodeName": "{{ table | lower }}_rdo",
+                    "jsonProperty": {
+                        "nodeType": "121",
+                        "data_provider_uuid": "0aeb93cc-95b8-1d5b-8195-cc7c38e50d50",
+                        "table_name": "{{ schema| lower }}.{{ table | lower }}",
+                        "field_mappings": [],
+                        "additional_properties": [
+                            {
+                                "name": "upsert-enabled",
+                                "value": "false",
+                                "row_key": "263e877a-3518-400e-a169-3b13e9f606d8"
+                            },
+                            {
+                                "name": "target-file-size-bytes",
+                                "value": "268435456",
+                                "row_key": "2c0c96fa-61c4-4d46-861c-a931c71922a1"
+                            }
+                        ],
+                        "row_kind": {
+                            "mapping": {
+                                "enabled": false
+                            }
+                        },
+                        "write_mode": "retract",
+                        "deletes_mode": "key_fields"
+                    },
+                    "jsonPropertyHashCode": -564698037,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2506,
+                            "y": 313
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Приёмник - Файловая система - Iceberg"
+                },
+                {
+                    "nodeVersionId": "{{ consume_node.flowtask_uuid }}",
+                    "nodeId": "{{ consume_node.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 102,
+                    "nodeName": "{{ schema | upper }}_INITIAL_{{ table | upper }}",
+                    "jsonProperty": {
+                        "nodeType": "102",
+                        "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+                        "schema_id": "{{ source_schema.id }}",
+                        "schema_version_id": "{{ source_schema.id }}",
+                        "boundedness": "CONTINUOUS_UNBOUNDED",
+                        "serde": {
+                            "value": {
+                                "format": "json"
+                            },
+                            "key": {
+                                "enabled": false
+                            },
+                            "headers": {
+                                "enabled": false
+                            },
+                            "partition": {
+                                "name": "BROKER_PARTITION",
+                                "enabled": true
+                            },
+                            "offset": {
+                                "name": "BROKER_OFFSET_ID",
+                                "enabled": true
+                            },
+                            "timestamp": {
+                                "enabled": false
+                            }
+                        },
+                        "kafka": {
+                            "consumer": {
+                                "group_id": "{{ schema | lower }}_cids_{{ table | lower }}_consumer",
+                                "start_offsets": {
+                                    "committed": {
+                                        "reset_strategy": "earliest"
+                                    },
+                                    "type": "committed"
+                                },
+                                "topic": "{{ schema | upper }}_INITIAL_{{ table | upper }}",
+                                "properties": []
+                            }
+                        },
+                        "execution_options": {
+                            "logging": true
+                        }
+                    },
+                    "jsonPropertyHashCode": -853175272,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1002,
+                            "y": 313
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Источник - Брокер сообщений - Kafka"
+                }
+            ],
+            "links": [
+                {
+                    "linkId": "{{ protect_enrich.uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ protect_node.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ protect_node.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ enrich_node.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ enrich_node.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ enrich_load.uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ enrich_node.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ enrich_node.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ load_node.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ load_node.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ consume_protect.uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ consume_node.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ consume_node.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ protect_node.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ protect_node.flowtask_uuid }}"
+                }
+            ],
+            "variableLinkAssociations": [],
+            "variableNodeAssociations": [],
+            "changeDt": "{{ (current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000)) }}",
+            "createDt": "{{ (current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000)) }}"
+        }
+    },
+    "rootIdsAndDescriptions": {
+        "{{ diagram_id }}": {
+            "{{ diagram_id }}": "{{ schema | upper }}_INITIAL_{{ table | upper }} (latest)"
+        }
+    }
+}
+{% endif %}

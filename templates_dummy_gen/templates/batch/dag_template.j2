@@ -1,0 +1,329 @@
+{%- set rdo_structure = namespace(
+    objectarea_pname=none,
+    structure_pname=none,
+    attributes=none
+)-%}
+
+{%- set cdc_structure = namespace(
+    objectarea_pname=none,
+    structure_pname=none,
+    attributes=none
+)-%}
+
+{%- set raw_structure = namespace(
+    objectarea_pname=none,
+    structure_pname=none,
+    attributes=none
+)-%}
+
+{%- for structure in metaobject.structures -%}
+    {%- if structure.metastructure_code == "mcRDO.msReplicaDataObject" -%}
+        {%- set rdo_structure.objectarea_pname = structure.objectarea_pname -%}
+        {%- set rdo_structure.structure_pname = structure.structure_pname -%}
+        {%- set rdo_structure.attributes = structure.attributes -%}
+    {%- elif structure.metastructure_code == "mcRDO.msChangeDataCapture" -%}
+        {%- set cdc_structure.objectarea_pname = structure.objectarea_pname -%}
+        {%- set cdc_structure.structure_pname = structure.structure_pname -%}
+        {%- set cdc_structure.attributes = structure.attributes -%}
+    {%- elif structure.metastructure_code == "mcRDO.msRawData" -%}
+        {%- set raw_structure.objectarea_pname = structure.objectarea_pname -%}
+        {%- set raw_structure.structure_pname = structure.structure_pname -%}
+        {%- set raw_structure.attributes = structure.attributes -%}
+    {%- endif -%}
+{%- endfor -%}
+
+
+from typing import Dict
+from datetime import datetime
+from airflow import DAG
+from airflow.operators.empty import EmptyOperator
+from airflow.operators.python_operator import PythonOperator, BranchPythonOperator, ShortCircuitOperator
+from airflow.models import Variable, BaseOperator
+from plugins.cids.CidsTemplatedSparkOperator import CidsTemplatedSparkOperator
+from plugins.cids.UMLoggingParamsFuncs import OraLogParamPrevValue
+from airflow_dags.iceberg_maintenance.utils.generators import generate_nim_task
+from airflow_dags.iceberg_maintenance.utils.utils import get_full_config_path
+
+
+# Source load configuration
+SCHEMA_NAME = "{{ rdo_structure.objectarea_pname }}"
+TABLE_NAME = "{{ rdo_structure.structure_pname }}"
+RAW_SCHEMA_NAME = "{{ raw_structure.objectarea_pname }}"
+RAW_TABLE_NAME = "{{ raw_structure.structure_pname }}"
+CDC_SCHEMA_NAME = "{{ cdc_structure.objectarea_pname }}"
+CDC_TABLE_NAME = "{{ cdc_structure.structure_pname }}"
+RDO_SCHEMA_NAME = "{{ rdo_structure.objectarea_pname }}"
+RDO_TABLE_NAME = "{{ rdo_structure.structure_pname }}"
+
+
+# Dag configuration
+SCHEDULE_INTERVAL = None
+DAG_DESCRIPTION = f"Runs cids load for table {SCHEMA_NAME}.{TABLE_NAME}"
+DAG_TAGS = ['bf', 'CIDS', SCHEMA_NAME, TABLE_NAME, 'migration']
+EMAIL_LIST = []
+
+
+# Maintenance configuration
+MAINTENANCE_SPARK_SUBMIT_OPERATOR = "nim_calc_spark_submit"
+MAINTENANCE_CONFIG_PATH = "/airflow_dags/iceberg_maintenance/configs/custom_configs/config_batch_image.py"
+"""
+Maintenance args:
+1) table_name: Table name with schema: schema_name.table_name
+2) --sort_strategy: File rewriting sort strategy. Default: "binpack"."
+3) --sort_order: File rewriting sort order. Default: "None"
+4) --partition_filter: Partition filter. Sample: iceberg.months(TRANSACTION_DATE) == 362. Default="1=1"
+5) --missing_files_check_enabled: Whether to perform file check for missing files or not. Expected True/False. Default="True".
+6) --s3_bucket: S3 bucket. Default="nova".
+7) --missing_files_check_days_depth: Depth of file check. -1 - use the same value as expire snapshots depth, 0 - check files for existing snapshots only, >0 - check files for entries older than the specified number of days. Default="-1".
+8) --missing_files_log_check_results: Whether to log check results for missing files or not. Expected True/False. Default="True".
+9) --check_table_name_full: Table name for check result logs with schema: schema_name.table_name.
+"""
+MAINTENANCE_TABLES = [
+    {
+        "table_name": f"{RAW_SCHEMA_NAME}.{RAW_TABLE_NAME}"
+    },
+    {
+        "table_name": f"{SCHEMA_NAME}.{CDC_TABLE_NAME}"
+    },
+    {
+        "table_name": f"{SCHEMA_NAME}.{RDO_TABLE_NAME}"
+    }
+]
+
+
+# ETL resource configuration
+def get_spark_config() -> Dict[str, str]:
+    merged_conf = {
+        **Variable.get("load_table_test", deserialize_json=True),
+        "spark.dynamicAllocation.enabled": "false",
+        "spark.executor.instances": "1",
+        "spark.executor.cores": "5",
+        "spark.driver.memory": "5G",
+        "spark.executor.memory": "10G",
+        # "spark.jars": "s3a://nova/libs/masking/masking-functions-1.0_batchTest.jar",
+        **Variable.get("yc_keys", deserialize_json=True),
+    }
+    return {k: str(v) for k, v in merged_conf.items()}
+
+
+def extract_load_sql(**context):
+    params = context["params"]
+    unique_query_code = "cids"
+    load_query_type = params["$$p_cids_workflow_mode"].strip().lower()
+    param_key_lower = f"$$p_sql_{unique_query_code}_{load_query_type}_query"
+    params_lower = {k.lower(): v for k, v in params.items()}
+
+    if param_key_lower not in params_lower:
+        raise ValueError(f"Missing SQL type parameter: {param_key_lower}")
+
+    context["ti"].xcom_push(key="ingest_sql_query", value=params_lower[param_key_lower])
+
+
+def select_load_mode(**context) -> str:
+    upload_mode = context['params']['$$p_cids_upload_mode']
+    upload_file_dict = {
+        'merge': 'task_merge_upload',
+        'replace': 'task_replace_upload',
+        'replace_by_section': 'task_replace_by_section_upload'
+    }
+    load_mode = upload_file_dict.get(upload_mode)
+    if not load_mode:
+        raise ValueError("p_cids_upload_mode variable is not correct")
+
+    return load_mode
+
+
+def is_regular_workflow_mode(**context) -> bool:
+    upload_mode = context['params']['$$p_cids_workflow_mode']
+    return upload_mode == 'regular'
+
+
+def create_maintenance_task(new_dag: DAG) -> BaseOperator:
+    task_operators = generate_nim_task(
+        MAINTENANCE_TABLES,
+        "spark_k8s",
+        get_full_config_path(MAINTENANCE_CONFIG_PATH),
+        MAINTENANCE_SPARK_SUBMIT_OPERATOR
+    )[-1]
+
+    for task_operator in task_operators:
+        task_operator.dag = new_dag
+
+    return task_operators
+
+
+dag = DAG(
+    dag_id='{{ metaobject.flows[0].flow_pname }}',
+    # https://confluence.moscow.alfaintra.net/display/BDP/Airflow
+    description=DAG_DESCRIPTION,
+    # описание потока
+    start_date=datetime("{{ current_date }}"),
+    catchup=False,
+    schedule_interval=SCHEDULE_INTERVAL,
+    max_active_runs=1,
+    tags=DAG_TAGS,
+    default_args={
+        "email": EMAIL_LIST,
+        "email_on_failure": True
+    }
+)
+
+BASE_SPARK_CONF = get_spark_config()
+
+start_task = EmptyOperator(
+    task_id='start',
+    dag=dag
+)
+
+select_sql_task = PythonOperator(
+    task_id='get_sql',
+    python_callable=extract_load_sql,
+    dag=dag,
+)
+
+ingest_task = CidsTemplatedSparkOperator(
+    task_id='task_ingest',
+    conn_id='spark_k8s',
+    name=dag.dag_id,
+    conf=BASE_SPARK_CONF,
+    custom_conf_str="{% raw %}{{ dag_run.conf.get('$$p_spark_config', '{}') }}{% endraw %}",
+    retries=1,
+    application='/opt/airflow/dags/repo/scripts/cids/data/datalake_migration/ingest.py',
+    application_args=[
+        '--app_name', '{% raw %}{{ dag.dag_id }}.{{ task.task_id }}{% endraw %}',
+        '--job_id', '{% raw %}{{ dag_run.run_id }}{% endraw %}',
+        '--target_raw_database_name', RAW_SCHEMA_NAME,
+        '--target_raw_table_name', RAW_TABLE_NAME,
+        '--db_driver', '{% raw %}{{ conn.get(dag_run.conf["$$p_cids_airflow_conn_name"]).extra_dejson.get("driver") }}{% endraw %}',
+        '--db_url', '{% raw %}{{ conn.get(dag_run.conf["$$p_cids_airflow_conn_name"]).host }}{% endraw %}',
+        '--login', '{% raw %}{{ conn.get(dag_run.conf["$$p_cids_airflow_conn_name"]).login }}{% endraw %}',
+        '--password', '{% raw %}{{ conn.get(dag_run.conf["$$p_cids_airflow_conn_name"]).password }}{% endraw %}',
+        '--source_query', '{% raw %}{{ ti.xcom_pull(key="ingest_sql_query") }}{% endraw %}',
+    ],
+    dag=dag
+)
+
+load_mode_branch = BranchPythonOperator(
+    task_id='branching',
+    python_callable=select_load_mode,
+    trigger_rule="all_success",
+    dag=dag
+)
+
+merge_upload_task = CidsTemplatedSparkOperator(
+    task_id='task_merge_upload',
+    conn_id='spark_k8s',
+    name=dag.dag_id,
+    conf=BASE_SPARK_CONF,
+    custom_conf_str="{% raw %}{{ dag_run.conf.get('$$p_spark_config', '{}') }}{% endraw %}",
+    retries=1,
+    application='/opt/airflow/dags/repo/scripts/cids/data/datalake_migration/merge.py',
+    application_args=[
+        '--app_name', '{% raw %}{{ dag.dag_id }}.{{ task.task_id }}{% endraw %}',
+        '--job_id', '{% raw %}{{ dag_run.run_id }}{% endraw %}',
+        '--target_raw_database_name', RAW_SCHEMA_NAME,
+        '--target_raw_table_name', RAW_TABLE_NAME,
+        '--target_cdc_database_name', CDC_SCHEMA_NAME,
+        '--target_cdc_table_name', CDC_TABLE_NAME,
+        '--target_rdo_database_name', RDO_SCHEMA_NAME,
+        '--target_rdo_table_name', RDO_TABLE_NAME,
+        '--db_driver', '{% raw %}{{ conn.get("y_airflow_control_spark").extra_dejson.get("driver") }}{% endraw %}',
+        '--db_url', '{% raw %}{{ conn.get("y_airflow_control_spark").host }}{% endraw %}',
+        '--login', '{% raw %}{{ conn.get("y_airflow_control_spark").login }}{% endraw %}',
+        '--password', '{% raw %}{{ conn.get("y_airflow_control_spark").password }}{% endraw %}',
+    ],
+    dag=dag
+)
+
+replace_upload_task = CidsTemplatedSparkOperator(
+    task_id='task_replace_upload',
+    conn_id='spark_k8s',
+    name=dag.dag_id,
+    conf=BASE_SPARK_CONF,
+    custom_conf_str="{% raw %}{{ dag_run.conf.get('$$p_spark_config', '{}') }}{% endraw %}",
+    retries=1,
+    application='/opt/airflow/dags/repo/scripts/cids/data/datalake_migration/replace.py',
+    application_args=[
+        '--app_name', '{% raw %}{{ dag.dag_id }}.{{ task.task_id }}{% endraw %}',
+        '--job_id', '{% raw %}{{ dag_run.run_id }}{% endraw %}',
+        '--target_raw_database_name', RAW_SCHEMA_NAME,
+        '--target_raw_table_name', RAW_TABLE_NAME,
+        '--target_cdc_database_name', CDC_SCHEMA_NAME,
+        '--target_cdc_table_name', CDC_TABLE_NAME,
+        '--target_rdo_database_name', RDO_SCHEMA_NAME,
+        '--target_rdo_table_name', RDO_TABLE_NAME,
+        '--db_driver', '{% raw %}{{ conn.get("y_airflow_control_spark").extra_dejson.get("driver") }}{% endraw %}',
+        '--db_url', '{% raw %}{{ conn.get("y_airflow_control_spark").host }}{% endraw %}',
+        '--login', '{% raw %}{{ conn.get("y_airflow_control_spark").login }}{% endraw %}',
+        '--password', '{% raw %}{{ conn.get("y_airflow_control_spark").password }}{% endraw %}',
+        '--workflow_mode', '{% raw %}{{ dag_run.conf["$$p_cids_workflow_mode"] }}{% endraw %}'
+    ],
+    dag=dag
+)
+
+replace_by_section_upload_task = CidsTemplatedSparkOperator(
+    task_id='task_replace_by_section_upload',
+    conn_id='spark_k8s',
+    name=dag.dag_id,
+    conf=BASE_SPARK_CONF,
+    custom_conf_str="{% raw %}{{ dag_run.conf.get('$$p_spark_config', '{}') }}{% endraw %}",
+    retries=1,
+    application='/opt/airflow/dags/repo/scripts/cids/data/datalake_migration/replace_by_section.py',
+    application_args=[
+        '--app_name', '{% raw %}{{ dag.dag_id }}.{{ task.task_id }}{% endraw %}',
+        '--job_id', '{% raw %}{{ dag_run.run_id }}{% endraw %}',
+        '--target_raw_database_name', RAW_SCHEMA_NAME,
+        '--target_raw_table_name', RAW_TABLE_NAME,
+        '--target_rdo_database_name', RDO_SCHEMA_NAME,
+        '--target_rdo_table_name', RDO_TABLE_NAME,
+        '--db_driver', '{% raw %}{{ conn.get("y_airflow_control_spark").extra_dejson.get("driver") }}{% endraw %}',
+        '--db_url', '{% raw %}{{ conn.get("y_airflow_control_spark").host }}{% endraw %}',
+        '--login', '{% raw %}{{ conn.get("y_airflow_control_spark").login }}{% endraw %}',
+        '--password', '{% raw %}{{ conn.get("y_airflow_control_spark").password }}{% endraw %}',
+        '--workflow_mode', '{% raw %}{{ dag_run.conf["$$p_cids_workflow_mode"] }}{% endraw %}'
+    ],
+    dag=dag
+)
+
+gateway = EmptyOperator(
+    task_id='gateway',
+    trigger_rule="none_failed",
+    dag=dag
+)
+
+maintenance_tasks = create_maintenance_task(new_dag=dag)
+
+
+check_workflow_mode_task = ShortCircuitOperator(
+    task_id='check_workflow_mode',
+    python_callable=is_regular_workflow_mode,
+    ignore_downstream_trigger_rules=False,
+    dag=dag
+)
+
+logging_um_params_task = OraLogParamPrevValue(
+    task_id='logging_um_params',
+    params_dict={
+        "$$p_cids_end_dttm": '{% raw %}{{ dag_run.conf["$$p_cids_end_dttm"] }}{% endraw %}',
+        "$$p_cids_end_date": '{% raw %}{{ dag_run.conf["$$p_cids_end_date"] }}{% endraw %}'
+    },
+    dag=dag
+)
+
+log_failed_task = EmptyOperator(
+    task_id='sys_job_failed',
+    trigger_rule='one_failed',
+    dag=dag
+)
+
+log_succeeded_task = EmptyOperator(
+    task_id='sys_job_succeeded',
+    trigger_rule='none_failed',
+    dag=dag
+)
+
+start_task >> select_sql_task >> ingest_task >> load_mode_branch
+load_mode_branch >> [merge_upload_task, replace_upload_task, replace_by_section_upload_task] >> gateway
+gateway >> [maintenance_tasks[0], maintenance_tasks[1], maintenance_tasks[2]] >> check_workflow_mode_task >> logging_um_params_task
+logging_um_params_task >> [log_failed_task, log_succeeded_task]
+{{ "" }}

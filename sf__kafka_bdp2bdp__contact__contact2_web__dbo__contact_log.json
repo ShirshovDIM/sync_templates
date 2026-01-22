@@ -1,0 +1,599 @@
+{
+    "diagrams": {
+        "abe69fec-39fd-40e5-afba-26dfd6666880": {
+            "diagramWithParameters": {
+                "lifeCycleState": "ACTIVE",
+                "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                "versionName": "latest",
+                "versionType": "LATEST",
+                "diagramId": "beca5139-1b5f-4893-a568-b29f64b42aa8",
+                "diagramNameEntity": {
+                    "id": "cdb9591d-c72d-4361-8c09-ec60008be73a",
+                    "objectId": "beca5139-1b5f-4893-a568-b29f64b42aa8",
+                    "objectName": "sf__kafka_bdp2bdp__contact__contact2_web__dbo__contact_log"
+                },
+                "createDt": "2025-12-23 11:00:44.101",
+                "changeDt": "2025-12-26 13:09:03.386",
+                "lastChangeByUser": "03a69363-54ea-4609-87d6-0cd0bbac1a6b",
+                "createByUser": "03a69363-54ea-4609-87d6-0cd0bbac1a6b",
+                "blockFlag": false,
+                "errorResponseFlag": false,
+                "treatTerminalStateAsInitial": false,
+                "diagramDescription": "Streaming flow, contact source.",
+                "saveDiagramMessage": false,
+                "diagramType": "DEFAULT",
+                "notificationEmails": [],
+                "inOutParameters": [],
+                "diagramKeyFields": []
+            },
+            "nodes": [
+                {
+                    "nodeVersionId": "a3f29c8d-c520-4af1-afe5-33cab54c2bf0",
+                    "nodeId": "3cb17c6a-ec3b-45e7-b0e5-91247f100b00",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "nodeTypeId": 105,
+                    "nodeName": "dbo__contact_log__filter",
+                    "nodeDescription": "Data filter to maintain change flags",
+                    "jsonProperty": {
+                        "nodeType": "105",
+                        "filter": "flag_key IS NULL",
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": -554994373,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1296.0104141235352,
+                            "y": 661.0173492431641
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Фильтр"
+                },
+                {
+                    "nodeVersionId": "a6aae28b-948b-409e-b9ad-ddd630a4c1b0",
+                    "nodeId": "7a0a215a-3e1b-473c-a785-0801c5e5e8a5",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "nodeTypeId": 130,
+                    "nodeName": "dbo__contact_log__union",
+                    "nodeDescription": "union",
+                    "jsonProperty": {
+                        "nodeType": "130",
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "complete_schemes_equality": false
+                    },
+                    "jsonPropertyHashCode": 79688,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 772.0104141235352,
+                            "y": 369.01734924316406
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Соединение - Union"
+                },
+                {
+                    "nodeVersionId": "c89b394e-8469-4168-ab11-4d7182364b38",
+                    "nodeId": "a6e83330-b199-464e-a66e-c90220ad4b6d",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "nodeTypeId": 111,
+                    "nodeName": "dbo__contact_log__protection",
+                    "nodeDescription": "The transforming, masking and hashing block for dbo.contact_log data",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import com.alfa.DataProtection;\nimport com.fasterxml.jackson.databind.ObjectMapper;\nimport groovy.json.JsonSlurper;\nimport java.time.LocalDateTime\nimport java.time.Instant\nimport java.time.ZoneId\n\ndef (\nicebergDatabase, icebergTableName, metaDataBaseSdiName,\nsaltIcebergSdiName, sourceDatabaseName, sourceTableName\n) = [\n\"bdp__wallet\", \"md_hashrules\", \"UM\",\n\"iceberg_bdp\", \"contact__contact2_web\", \"dbo__contact_log\"\n]\n\ndef properties = __PROPERTIES__\ndef s3Params = [\n\"bucketName\": \"nova\",\n\"maskingJarPath\": \"libs/masking/masking-functions-1.0-SNAPSHOT.jar\",\n]\n\n@Singleton(lazy = true)\nclass LocalDataProtector {\nDataProtection protector\nprivate static boolean isInitialized = false\nstatic LocalDataProtector initialize(\nicebergDatabase,icebergTableName,metaDataBaseSdiName,saltIcebergSdiName,\nproperties,sourceDatabaseName,sourceTableName,s3Params\n) {\nLocalDataProtector instance = LocalDataProtector.instance\nif (!isInitialized) {\ninstance.protector = new DataProtection.Builder()\n.setIcebergDatabase(icebergDatabase).setIcebergTableName(icebergTableName)\n.setMetaDataBaseSdiName(metaDataBaseSdiName).setS3Params(s3Params)\n.setProperties(properties).setSourceDatabaseName(sourceDatabaseName)\n.setSourceTableName(sourceTableName).setSaltIcebergSdiName(saltIcebergSdiName)\n.build()\nisInitialized = true\n}\nreturn instance\n}\n}\n\ndef protector = LocalDataProtector.initialize(\nicebergDatabase,icebergTableName,metaDataBaseSdiName,saltIcebergSdiName,\nproperties,sourceDatabaseName,sourceTableName,s3Params,\n).protector\n\nif (flag_key) {\n    def mapper = new ObjectMapper()\n    def meta = [:]\n    if (flag_value) {\n        meta = mapper.readValue(flag_value, Map)\n    } \n    protector.processFlag(flag_key, meta)\n}\n\nLocalDateTime convertToDateTime(Long millis) {\n    if (millis == null) return null\n    try {\n        return Instant.ofEpochMilli(millis)\n                      .atZone(ZoneId.of(\"UTC\"))\n                      .toLocalDateTime()\n    } catch (Exception e) {\n        return null\n    }\n}\n\ndef jsonSlurper = new JsonSlurper()\ndef data = jsonSlurper.parseText(data)\ndef act_data = (data.op == \"d\") ? data.before : data.after\n\nsource = act_data.source\nrecord_guid = act_data.record_guid\nr_address_id = act_data.r_address_id == null ? null : act_data.r_address_id.longValue()\next_id = act_data.ext_id\nr_debt_id = act_data.r_debt_id == null ? null : act_data.r_debt_id.longValue()\ncall_id = act_data.call_id\nr_campaign_id = act_data.r_campaign_id == null ? null : act_data.r_campaign_id.longValue()\ncontact_dt = convertToDateTime(act_data.contact_dt)\nchange_dt = convertToDateTime(act_data.change_dt)\nnext_call_dt = convertToDateTime(act_data.next_call_dt)\ncreate_dt = convertToDateTime(act_data.create_dt)\nlongitude = act_data.longitude\nlongitude_mask = (act_data.longitude == null) ? null : (act_data.longitude.trim() == \"\") ? null : protector.maskData(\"longitude\", act_data.longitude.trim())\nid = act_data.id == null ? null : act_data.id.longValue()\nchat_id = act_data.chat_id\nr_contact_tree_code = act_data.r_contact_tree_code == null ? null : act_data.r_contact_tree_code.longValue()\nobj_comment = act_data.obj_comment\nobj_comment_mask = (act_data.obj_comment == null) ? null : (act_data.obj_comment.trim() == \"\") ? null : protector.maskData(\"obj_comment\", act_data.obj_comment.trim())\nlatitude = act_data.latitude\nlatitude_mask = (act_data.latitude == null) ? null : (act_data.latitude.trim() == \"\") ? null : protector.maskData(\"latitude\", act_data.latitude.trim())\nr_reg_app_user_id = act_data.r_reg_app_user_id == null ? null : act_data.r_reg_app_user_id.longValue()\nr_app_user_id = act_data.r_app_user_id == null ? null : act_data.r_app_user_id.longValue()\ncall_reason = act_data.call_reason\nperson_role = act_data.person_role\ndict_value_1 = act_data.dict_value_1\nr_person_id = act_data.r_person_id == null ? null : act_data.r_person_id.longValue()\nr_user_task_id = act_data.r_user_task_id == null ? null : act_data.r_user_task_id.longValue()\nr_promise_id = act_data.r_promise_id == null ? null : act_data.r_promise_id.longValue()\nr_payment_id = act_data.r_payment_id == null ? null : act_data.r_payment_id.longValue()\nr_change_user_id = act_data.r_change_user_id == null ? null : act_data.r_change_user_id.longValue()\nr_phone_id = act_data.r_phone_id == null ? null : act_data.r_phone_id.longValue()\ncontact_type = act_data.contact_type\naccuracy = act_data.accuracy\nr_property_id = act_data.r_property_id == null ? null : act_data.r_property_id.longValue()\n",
+                        "schema_id": "d280ac8d-0245-4a87-94e2-56d477b57eb3",
+                        "schema_version_id": "9b7bc215-fa9a-449d-a235-3c9743e87b5c",
+                        "in": [
+                            "flag_key",
+                            "flag_value",
+                            "data"
+                        ],
+                        "out": [
+                            "source",
+                            "record_guid",
+                            "r_address_id",
+                            "ext_id",
+                            "r_debt_id",
+                            "call_id",
+                            "r_campaign_id",
+                            "contact_dt",
+                            "change_dt",
+                            "next_call_dt",
+                            "create_dt",
+                            "longitude",
+                            "id",
+                            "chat_id",
+                            "r_contact_tree_code",
+                            "obj_comment",
+                            "latitude",
+                            "r_reg_app_user_id",
+                            "r_app_user_id",
+                            "call_reason",
+                            "person_role",
+                            "dict_value_1",
+                            "r_person_id",
+                            "r_user_task_id",
+                            "r_promise_id",
+                            "r_payment_id",
+                            "r_change_user_id",
+                            "r_phone_id",
+                            "contact_type",
+                            "accuracy",
+                            "r_property_id",
+                            "obj_comment_mask",
+                            "longitude_mask",
+                            "latitude_mask"
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": 1080613135,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1296.0104141235352,
+                            "y": 369.01734924316406
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Кастомная - Groovy"
+                },
+                {
+                    "nodeVersionId": "909a4e42-7904-40e8-aa87-8e4eec32d132",
+                    "nodeId": "9daae80c-b76e-4657-b377-09a7bb6a2e29",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "nodeTypeId": 102,
+                    "nodeName": "dbo__contact_log__kafka",
+                    "jsonProperty": {
+                        "nodeType": "102",
+                        "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+                        "schema_id": "6e934fae-9649-41ee-ba2e-9092c9faab2c",
+                        "schema_version_id": "4d8ddff8-721f-4720-b45c-ba55ac0bd836",
+                        "boundedness": "CONTINUOUS_UNBOUNDED",
+                        "serde": {
+                            "value": {
+                                "format": "json"
+                            },
+                            "key": {
+                                "enabled": false
+                            },
+                            "headers": {
+                                "enabled": false
+                            },
+                            "partition": {
+                                "name": "BROKER_PARTITION",
+                                "enabled": true
+                            },
+                            "offset": {
+                                "name": "BROKER_OFFSET_ID",
+                                "enabled": true
+                            },
+                            "timestamp": {
+                                "enabled": false
+                            }
+                        },
+                        "kafka": {
+                            "consumer": {
+                                "group_id": "contact_cids_dbo__contact_log_consumer",
+                                "start_offsets": {
+                                    "committed": {
+                                        "reset_strategy": "earliest"
+                                    },
+                                    "type": "committed"
+                                },
+                                "topic": "contact__contact2_web__dbo__contact_log__journal",
+                                "properties": []
+                            }
+                        },
+                        "execution_options": {
+                            "logging": true
+                        }
+                    },
+                    "jsonPropertyHashCode": 81671851,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 250.01041412353516,
+                            "y": 492.01734924316406
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Источник - Брокер сообщений - Kafka"
+                },
+                {
+                    "nodeVersionId": "0880120c-99ca-4698-b655-782bd029d0c1",
+                    "nodeId": "81f209c7-cbac-4c41-a57d-018bafeaf33a",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "nodeTypeId": 102,
+                    "nodeName": "dbo__contact_log__sensitive_flags",
+                    "jsonProperty": {
+                        "nodeType": "102",
+                        "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+                        "boundedness": "CONTINUOUS_UNBOUNDED",
+                        "serde": {
+                            "value": {
+                                "format": "string",
+                                "single_field_name": "flag_value"
+                            },
+                            "key": {
+                                "name": "flag_key",
+                                "enabled": true,
+                                "format": "string"
+                            },
+                            "headers": {
+                                "enabled": false
+                            },
+                            "partition": {
+                                "enabled": false
+                            },
+                            "offset": {
+                                "enabled": false
+                            },
+                            "timestamp": {
+                                "enabled": false
+                            }
+                        },
+                        "kafka": {
+                            "consumer": {
+                                "group_id": "contact_cids_dbo__contact_log_consumer",
+                                "start_offsets": {
+                                    "committed": {
+                                        "reset_strategy": "earliest"
+                                    },
+                                    "type": "committed"
+                                },
+                                "topic": "tracking_sensitive_flags",
+                                "properties": []
+                            }
+                        },
+                        "execution_options": {
+                            "logging": true
+                        }
+                    },
+                    "jsonPropertyHashCode": -695562966,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 256.01041412353516,
+                            "y": 245.01734924316406
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Источник - Брокер сообщений - Kafka"
+                },
+                {
+                    "nodeVersionId": "590aa24a-dbb0-46d1-9862-cc9b7f09314b",
+                    "nodeId": "f244f89c-e697-4962-9136-5f0d3a780345",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "nodeTypeId": 111,
+                    "nodeName": "dbo__contact_log__cdc_tech",
+                    "nodeDescription": "Mapping and filling in the technical attributes of the CDC structure",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import java.time.LocalDateTime\nimport java.time.format.DateTimeFormatter\nimport java.time.temporal.ChronoUnit\nimport groovy.json.JsonSlurper\nimport java.time.Instant\nimport java.time.ZoneId\n\ndef jsonSlurper = new JsonSlurper()\ndef data = jsonSlurper.parseText(data)\ndef instant = Instant.ofEpochMilli(data.ts_ms as long)\ndef determineOperation(data) {\n    if (!data || data.op == null || !['d', 'u', 'c', 'a'].contains(data.op)) {\n        return 'X'\n    }\n    switch (data.op) {\n        case 'd':\n            return 'D'\n        case 'u':\n            return 'U'\n        case 'a':\n            return 'A'\n        case 'c':\n            return data.before?.id != null ? 'U' : 'I'\n    }\n}\n\njob_insert_id = (long) -1\njob_cdc_id = (long) __CONFIG__.get(\"job.instance_id\")\ntrx_id = data.source.txId != null ? data.source.txId.toString() : null\ncsn_id = data.source.lsn != null ? data.source.lsn.toString() : null\nbroker_partition_id = BROKER_PARTITION != null ? (long) BROKER_PARTITION : null\nbroker_offset_id = BROKER_OFFSET_ID != null ? (long) BROKER_OFFSET_ID : null\ndeleted_flag = data.op == 'd' ? true : false\nsys_insert_stamp = LocalDateTime.now().plusHours(3)\nsrc_modified_stamp = instant != null ? LocalDateTime.ofInstant(instant, ZoneId.of(\"UTC\")).plusHours(3) : LocalDateTime.now().plusHours(3)\nopertype_code = determineOperation(data)\n",
+                        "schema_id": "0cffa967-ceda-4436-a77a-4fe6d608e40f",
+                        "schema_version_id": "0aeb91a7-95f0-1018-8195-f192c668031a",
+                        "in": [
+                            "BROKER_PARTITION",
+                            "BROKER_OFFSET_ID",
+                            "data"
+                        ],
+                        "out": [
+                            "job_insert_id",
+                            "job_cdc_id",
+                            "trx_id",
+                            "csn_id",
+                            "broker_partition_id",
+                            "broker_offset_id",
+                            "deleted_flag",
+                            "sys_insert_stamp",
+                            "src_modified_stamp",
+                            "opertype_code"
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": -150289196,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1835.0104141235352,
+                            "y": 792.0173492431641
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Кастомная - Groovy"
+                },
+                {
+                    "nodeVersionId": "1f3272b8-d226-410d-8542-9fcc33465fa7",
+                    "nodeId": "21678706-b7ec-4eea-a6b6-a5d2df8927a4",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "nodeTypeId": 111,
+                    "nodeName": "dbo__contact_log__rdo_meta",
+                    "nodeDescription": "Mapping and filling in the technical attributes of the RDO structure",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import java.time.LocalDateTime\nimport java.time.format.DateTimeFormatter\nimport java.time.temporal.ChronoUnit\nimport groovy.json.JsonSlurper\nimport java.time.Instant\nimport java.time.ZoneId\n\ndef jsonSlurper = new JsonSlurper()\ndef data = jsonSlurper.parseText(data)\ndef instant = Instant.ofEpochMilli(data.ts_ms as long)\n\ndef determineOperation(data) {\n    if (!data || data.op == null || !['d', 'u', 'c', 'a'].contains(data.op)) {\n        return 'X'\n    }\n    switch (data.op) {\n        case 'd':\n            return 'D'\n        case 'u':\n            return 'U'\n        case 'a':\n            return 'A'\n        case 'c':\n            return data.before?.id != null ? 'U' : 'I'\n    }\n}\n\njob_insert_id = (long) -1\njob_update_id = (long) -1\njob_cdc_id = (long) __CONFIG__.get(\"job.instance_id\") \ntrx_id = data.source.txId != null ? data.source.txId.toString() : null\ncsn_id = data.source.lsn != null ? data.source.lsn.toString() : null\nbroker_partition_id = BROKER_PARTITION != null ? (long) BROKER_PARTITION : null\nbroker_offset_id = BROKER_OFFSET_ID != null ? (long) BROKER_OFFSET_ID : null\ndeleted_flag = (data.op == 'd') ? true : false\nsys_insert_stamp = null\nsys_update_stamp = LocalDateTime.now().plusHours(3)\nsrc_modified_stamp = instant != null ? LocalDateTime.ofInstant(instant, ZoneId.of(\"UTC\")).plusHours(3) : LocalDateTime.now().plusHours(3)\nopertype_last_code = determineOperation(data)",
+                        "schema_id": "e48c1f44-f6e6-46c1-a304-7b45e9265146",
+                        "schema_version_id": "0aeb91a7-95f0-1018-8195-f1909ba0030f",
+                        "in": [
+                            "BROKER_PARTITION",
+                            "BROKER_OFFSET_ID",
+                            "data"
+                        ],
+                        "out": [
+                            "job_insert_id",
+                            "job_update_id",
+                            "job_cdc_id",
+                            "trx_id",
+                            "csn_id",
+                            "broker_partition_id",
+                            "broker_offset_id",
+                            "deleted_flag",
+                            "sys_insert_stamp",
+                            "sys_update_stamp",
+                            "src_modified_stamp",
+                            "opertype_last_code"
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": -1219559698,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1836.0104141235352,
+                            "y": 552.0173492431641
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Кастомная - Groovy"
+                },
+                {
+                    "nodeVersionId": "2a747d83-afa8-4b68-9e13-6ec5911ac478",
+                    "nodeId": "04aa06e9-68e9-4abd-aae3-356592374fad",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "nodeTypeId": 121,
+                    "nodeName": "dbo__contact_log__cdc",
+                    "jsonProperty": {
+                        "nodeType": "121",
+                        "data_provider_uuid": "0aeb93cc-95b8-1d5b-8195-cc7c38e50d50",
+                        "table_name": "contact__contact2_web.dbo__contact_log__cdc",
+                        "field_mappings": [],
+                        "additional_properties": [
+                            {
+                                "name": "target-file-size-bytes",
+                                "value": "268435456",
+                                "row_key": "0c2dac38-1d91-47bc-8db7-1d1362ed54e7"
+                            },
+                            {
+                                "name": "upsert-enabled",
+                                "value": "false",
+                                "row_key": "a1e1c04e-e8df-4460-8045-b8ca54c3c437"
+                            }
+                        ],
+                        "row_kind": {
+                            "mapping": {
+                                "enabled": false
+                            }
+                        },
+                        "write_mode": "retract",
+                        "deletes_mode": "key_fields"
+                    },
+                    "jsonPropertyHashCode": -1892250516,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2362.061011128236,
+                            "y": 792.3352697845903
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Приёмник - Файловая система - Iceberg"
+                },
+                {
+                    "nodeVersionId": "fbc16003-bdef-424f-a653-3e692427b867",
+                    "nodeId": "caff057b-a953-4008-abdf-fc2f3b213b18",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "nodeTypeId": 121,
+                    "nodeName": "dbo__contact_log__rdo",
+                    "jsonProperty": {
+                        "nodeType": "121",
+                        "data_provider_uuid": "0aeb93cc-95b8-1d5b-8195-cc7c38e50d50",
+                        "table_name": "contact__contact2_web.dbo__contact_log",
+                        "field_mappings": [],
+                        "additional_properties": [
+                            {
+                                "name": "target-file-size-bytes",
+                                "value": "268435456",
+                                "row_key": "9660d936-bb23-4a15-afe4-d7d18a42bb21"
+                            }
+                        ],
+                        "write_mode": "upsert"
+                    },
+                    "jsonPropertyHashCode": -2013846091,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2359.443155479892,
+                            "y": 552.3191647805347
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Приёмник - Файловая система - Iceberg"
+                }
+            ],
+            "links": [
+                {
+                    "linkId": "78eedf64-92c7-4eb9-bdb4-cb09f3e73ecc",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "prevNode": {
+                        "nodeVersionId": "909a4e42-7904-40e8-aa87-8e4eec32d132"
+                    },
+                    "prevNodeVersionId": "909a4e42-7904-40e8-aa87-8e4eec32d132",
+                    "nextNode": {
+                        "nodeVersionId": "a6aae28b-948b-409e-b9ad-ddd630a4c1b0"
+                    },
+                    "nextNodeVersionId": "a6aae28b-948b-409e-b9ad-ddd630a4c1b0"
+                },
+                {
+                    "linkId": "cf775e52-c6df-4984-b1d4-d4d8629fb42b",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "prevNode": {
+                        "nodeVersionId": "c89b394e-8469-4168-ab11-4d7182364b38"
+                    },
+                    "prevNodeVersionId": "c89b394e-8469-4168-ab11-4d7182364b38",
+                    "nextNode": {
+                        "nodeVersionId": "a3f29c8d-c520-4af1-afe5-33cab54c2bf0"
+                    },
+                    "nextNodeVersionId": "a3f29c8d-c520-4af1-afe5-33cab54c2bf0"
+                },
+                {
+                    "linkId": "b7dcc0e3-ce45-4db3-8ecb-e97b9c68331d",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "prevNode": {
+                        "nodeVersionId": "a3f29c8d-c520-4af1-afe5-33cab54c2bf0"
+                    },
+                    "prevNodeVersionId": "a3f29c8d-c520-4af1-afe5-33cab54c2bf0",
+                    "nextNode": {
+                        "nodeVersionId": "1f3272b8-d226-410d-8542-9fcc33465fa7"
+                    },
+                    "nextNodeVersionId": "1f3272b8-d226-410d-8542-9fcc33465fa7"
+                },
+                {
+                    "linkId": "cd8b4e5f-0fab-4cb2-9bd5-b0a7a3696613",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "prevNode": {
+                        "nodeVersionId": "1f3272b8-d226-410d-8542-9fcc33465fa7"
+                    },
+                    "prevNodeVersionId": "1f3272b8-d226-410d-8542-9fcc33465fa7",
+                    "nextNode": {
+                        "nodeVersionId": "fbc16003-bdef-424f-a653-3e692427b867"
+                    },
+                    "nextNodeVersionId": "fbc16003-bdef-424f-a653-3e692427b867"
+                },
+                {
+                    "linkId": "b0d184cc-976a-4125-bf47-d48e11f95a27",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "prevNode": {
+                        "nodeVersionId": "a3f29c8d-c520-4af1-afe5-33cab54c2bf0"
+                    },
+                    "prevNodeVersionId": "a3f29c8d-c520-4af1-afe5-33cab54c2bf0",
+                    "nextNode": {
+                        "nodeVersionId": "590aa24a-dbb0-46d1-9862-cc9b7f09314b"
+                    },
+                    "nextNodeVersionId": "590aa24a-dbb0-46d1-9862-cc9b7f09314b"
+                },
+                {
+                    "linkId": "8d1a4ae3-17a1-46a8-b854-0134bed6669e",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "prevNode": {
+                        "nodeVersionId": "a6aae28b-948b-409e-b9ad-ddd630a4c1b0"
+                    },
+                    "prevNodeVersionId": "a6aae28b-948b-409e-b9ad-ddd630a4c1b0",
+                    "nextNode": {
+                        "nodeVersionId": "c89b394e-8469-4168-ab11-4d7182364b38"
+                    },
+                    "nextNodeVersionId": "c89b394e-8469-4168-ab11-4d7182364b38"
+                },
+                {
+                    "linkId": "5416ce62-736d-4d10-9b6f-2c3e91ee73fd",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "prevNode": {
+                        "nodeVersionId": "590aa24a-dbb0-46d1-9862-cc9b7f09314b"
+                    },
+                    "prevNodeVersionId": "590aa24a-dbb0-46d1-9862-cc9b7f09314b",
+                    "nextNode": {
+                        "nodeVersionId": "2a747d83-afa8-4b68-9e13-6ec5911ac478"
+                    },
+                    "nextNodeVersionId": "2a747d83-afa8-4b68-9e13-6ec5911ac478"
+                },
+                {
+                    "linkId": "6bfeb8c6-5f85-4e59-bf63-17fbff675797",
+                    "diagramVersion": {
+                        "versionId": "abe69fec-39fd-40e5-afba-26dfd6666880"
+                    },
+                    "diagramVersionId": "abe69fec-39fd-40e5-afba-26dfd6666880",
+                    "prevNode": {
+                        "nodeVersionId": "0880120c-99ca-4698-b655-782bd029d0c1"
+                    },
+                    "prevNodeVersionId": "0880120c-99ca-4698-b655-782bd029d0c1",
+                    "nextNode": {
+                        "nodeVersionId": "a6aae28b-948b-409e-b9ad-ddd630a4c1b0"
+                    },
+                    "nextNodeVersionId": "a6aae28b-948b-409e-b9ad-ddd630a4c1b0"
+                }
+            ],
+            "variableLinkAssociations": [],
+            "variableNodeAssociations": [],
+            "changeDt": "2025-12-26 13:09:03.386",
+            "createDt": "2025-12-23 11:00:44.101"
+        }
+    },
+    "rootIdsAndDescriptions": {
+        "abe69fec-39fd-40e5-afba-26dfd6666880": {
+            "abe69fec-39fd-40e5-afba-26dfd6666880": "sf__kafka_bdp2bdp__contact__contact2_web__dbo__contact_log (latest)"
+        }
+    }
+}

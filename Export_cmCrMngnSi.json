@@ -1,0 +1,287 @@
+{
+    "diagrams": {
+        "796a117e-1db7-4212-b726-c5c09924cc75": {
+            "changeDt": "2025-06-24 09:22:04.937",
+            "createDt": "2025-05-20 17:11:55.962",
+            "diagramWithParameters": {
+                "blockFlag": false,
+                "changeDt": "2025-06-24 09:22:04.937",
+                "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+                "createDt": "2025-05-20 17:11:55.962",
+                "diagramDescription": "template PostgresCDC",
+                "diagramId": "362f5d5a-a1c0-4f83-afbe-7845a1c7859c",
+                "diagramKeyFields": [],
+                "diagramNameEntity": {
+                    "id": "0aeb9103-96e9-1dde-8196-ee0967bc0941",
+                    "objectId": "362f5d5a-a1c0-4f83-afbe-7845a1c7859c",
+                    "objectName": "template_cdcf__sb1c2kafka_bdp__sb1c_container_workflow__journal"
+                },
+                "diagramType": "DEFAULT",
+                "errorResponseFlag": false,
+                "inOutParameters": [],
+                "lastChangeByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+                "lifeCycleState": "ACTIVE",
+                "metaInfo": {
+                    "nodeCounter": 7
+                },
+                "notificationEmails": [],
+                "saveDiagramMessage": false,
+                "treatTerminalStateAsInitial": false,
+                "versionId": "796a117e-1db7-4212-b726-c5c09924cc75",
+                "versionName": "latest",
+                "versionType": "LATEST"
+            },
+            "links": [
+                {
+                    "diagramVersion": {
+                        "versionId": "796a117e-1db7-4212-b726-c5c09924cc75"
+                    },
+                    "diagramVersionId": "796a117e-1db7-4212-b726-c5c09924cc75",
+                    "linkId": "0b49f1f9-10d4-4d8a-b1d6-b863f0523744",
+                    "nextNode": {
+                        "nodeVersionId": "7afeaa1b-a950-497c-8661-1623d92f1469"
+                    },
+                    "nextNodeVersionId": "7afeaa1b-a950-497c-8661-1623d92f1469",
+                    "prevNode": {
+                        "nodeVersionId": "e2e2d002-5d65-4b54-be9e-8cd6bbf83689"
+                    },
+                    "prevNodeVersionId": "e2e2d002-5d65-4b54-be9e-8cd6bbf83689"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "796a117e-1db7-4212-b726-c5c09924cc75"
+                    },
+                    "diagramVersionId": "796a117e-1db7-4212-b726-c5c09924cc75",
+                    "linkId": "9d1de670-e663-45ca-86e6-d1885032c403",
+                    "nextNode": {
+                        "nodeVersionId": "e2e2d002-5d65-4b54-be9e-8cd6bbf83689"
+                    },
+                    "nextNodeVersionId": "e2e2d002-5d65-4b54-be9e-8cd6bbf83689",
+                    "prevNode": {
+                        "nodeVersionId": "a11089b7-b97d-4b2a-8be5-7264f6b92762"
+                    },
+                    "prevNodeVersionId": "a11089b7-b97d-4b2a-8be5-7264f6b92762"
+                }
+            ],
+            "nodes": [
+                {
+                    "diagramVersion": {
+                        "versionId": "796a117e-1db7-4212-b726-c5c09924cc75"
+                    },
+                    "diagramVersionId": "796a117e-1db7-4212-b726-c5c09924cc75",
+                    "displayType": "Трансформация - Простая - Маппинг",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        },
+                        "mapping": [
+                            {
+                                "alias": "data",
+                                "expression": "data"
+                            },
+                            {
+                                "alias": "table_name",
+                                "expression": "table_name"
+                            },
+                            {
+                                "alias": "key_value",
+                                "expression": "cast( case  when table_name in  ('public.heartbeat', 'public.resolutions', 'public.user_actions', 'public.alfa_capture_transanctions',  'public.client_reports', 'public.sales_users', 'public.lm_clients', 'public.clients', 'public.inbound_containers')  then\r\n        IF(json_value(data, '$.op') = 'd', json_value(data, '$.before.id'), json_value(data, '$.after.id'))  end as string )"
+                            },
+                            {
+                                "alias": "topic_body",
+                                "expression": "replace(table_name, '.', '__')"
+                            },
+                            {
+                                "alias": "postfix",
+                                "expression": "'journal'"
+                            }
+                        ],
+                        "nodeType": "104"
+                    },
+                    "jsonPropertyHashCode": 1883690727,
+                    "metaInfo": {
+                        "position": {
+                            "x": 858.0,
+                            "y": 301.0
+                        }
+                    },
+                    "nodeId": "70400858-c1bd-4aec-b7bb-b564410abc82",
+                    "nodeName": "Выделение key_value",
+                    "nodeTypeId": 104,
+                    "nodeVersionId": "e2e2d002-5d65-4b54-be9e-8cd6bbf83689",
+                    "validState": "VALID"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "796a117e-1db7-4212-b726-c5c09924cc75"
+                    },
+                    "diagramVersionId": "796a117e-1db7-4212-b726-c5c09924cc75",
+                    "displayType": "Приёмник - Брокер сообщений - Kafka",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "execution_options": {},
+                        "kafka": {
+                            "producer": {
+                                "properties": [
+                                    {
+                                        "name": "transaction.timeout.ms",
+                                        "row_key": "65d469aa-79e5-461c-bd37-78b82893785b",
+                                        "value": "900000"
+                                    }
+                                ],
+                                "semantic": "AT_LEAST_ONCE",
+                                "topic_selection_type": "dynamic",
+                                "topic_selector": {
+                                    "delimiter": "__",
+                                    "fields": [
+                                        "topic_body",
+                                        "postfix"
+                                    ],
+                                    "prefix": "sb1c__sb1c_container_workflow1__"
+                                }
+                            }
+                        },
+                        "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+                        "nodeType": "103",
+                        "serde": {
+                            "key": {
+                                "enabled": true,
+                                "format": "csv",
+                                "key_by": [
+                                    "key_value"
+                                ]
+                            },
+                            "value": {
+                                "format": "json"
+                            }
+                        }
+                    },
+                    "jsonPropertyHashCode": 572324776,
+                    "metaInfo": {
+                        "position": {
+                            "x": 1352.0,
+                            "y": 301.0
+                        }
+                    },
+                    "nodeId": "002bc2e7-135f-4c7e-9142-4cd95ebbb572",
+                    "nodeName": "Kafka sb1c",
+                    "nodeTypeId": 103,
+                    "nodeVersionId": "7afeaa1b-a950-497c-8661-1623d92f1469",
+                    "validState": "VALID"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "796a117e-1db7-4212-b726-c5c09924cc75"
+                    },
+                    "diagramVersionId": "796a117e-1db7-4212-b726-c5c09924cc75",
+                    "displayType": "Источник - CDC - PostgreSQL MultiTable",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "capture_all_tables": false,
+                        "cdc": {
+                            "postgres": {
+                                "changelog": {
+                                    "mode": "all"
+                                },
+                                "decoding": {
+                                    "plugin": {
+                                        "name": "pgoutput"
+                                    }
+                                },
+                                "server": {
+                                    "time": {
+                                        "zone": "UTC"
+                                    }
+                                },
+                                "slot": {
+                                    "name": "bdp_debezium_slot"
+                                },
+                                "table": {
+                                    "name": [
+                                        "resolutions",
+                                        "user_actions",
+                                        "alfa_capture_transactions",
+                                        "client_reports",
+                                        "sales_users",
+                                        "lm_clients",
+                                        "clients",
+                                        "inbound_containers"
+                                    ]
+                                }
+                            }
+                        },
+                        "data_provider_uuid": "0aeb9206-946e-1884-8194-b734bfd61e1e",
+                        "debezium": {
+                            "properties": [
+                                {
+                                    "name": "publication.name",
+                                    "value": "cdc_publication"
+                                },
+                                {
+                                    "name": "snapshot.mode",
+                                    "value": "never"
+                                },
+                                {
+                                    "name": "schema.include.list",
+                                    "value": "public"
+                                },
+                                {
+                                    "name": "heartbeat.interval.ms",
+                                    "value": "5000"
+                                },
+                                {
+                                    "name": "heartbeat.action.query",
+                                    "value": "INSERT INTO public.heartbeat (id, confirmed_flush_lsn, modify_date) SELECT 'cdc_publication', confirmed_flush_lsn::varchar, now() FROM pg_replication_slots WHERE slot_name = 'bdp_debezium_slot' ON CONFLICT (id) DO UPDATE SET confirmed_flush_lsn = EXCLUDED.confirmed_flush_lsn, modify_date = EXCLUDED.modify_date;"
+                                },
+                                {
+                                    "name": "max.batch.size",
+                                    "value": "10000"
+                                },
+                                {
+                                    "name": "max.queue.size",
+                                    "value": "32000"
+                                },
+                                {
+                                    "name": "poll.interval.ms",
+                                    "value": "100"
+                                }
+                            ]
+                        },
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "fields": {
+                            "data": {
+                                "schema": {
+                                    "included": false
+                                }
+                            }
+                        },
+                        "nodeType": "114"
+                    },
+                    "jsonPropertyHashCode": -820458874,
+                    "metaInfo": {
+                        "position": {
+                            "x": 355.0,
+                            "y": 300.1294494367039
+                        }
+                    },
+                    "nodeId": "4dca59ef-7ad6-47ee-b513-a5ef18864f1b",
+                    "nodeName": "Источник - CDC - PostgreSQL MultiTable_2",
+                    "nodeTypeId": 114,
+                    "nodeVersionId": "a11089b7-b97d-4b2a-8be5-7264f6b92762",
+                    "validState": "VALID"
+                }
+            ],
+            "variableLinkAssociations": [],
+            "variableNodeAssociations": []
+        }
+    },
+    "rootIdsAndDescriptions": {
+        "796a117e-1db7-4212-b726-c5c09924cc75": {
+            "796a117e-1db7-4212-b726-c5c09924cc75": "template_cdcf__sb1c2kafka_bdp__sb1c_container_workflow__journal (latest)"
+        }
+    }
+}

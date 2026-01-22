@@ -1,0 +1,57 @@
+{%- if structure.metastructure_code in ['mcRDO.msChangeDataView', 'mcRDO.msReplicaDataView'] and 'eq' in metaobject.application_code %}
+{%- set attrs = (structure.attributes or []) | list %}
+{%- set sorted_attrs = attrs | sort(attribute='orderno_ncode') -%}
+
+{# Найдём все имена, которые будут "заменены" через dSourceMaskedColumn #}
+{%- set masked_replacements = [] %}
+{%- for attr in sorted_attrs -%}
+    {%- if attr.domain_code == 'dSourceMaskedColumn' %}
+        {%- do masked_replacements.append(attr.attribute_name | string) %}
+    {%- endif -%}
+{%- endfor -%}
+
+{#- Фильтруем атрибуты для CREATE VIEW: убираем dSourceMaskedColumn -#}
+{%- set view_attrs = sorted_attrs | rejectattr('domain_code', 'equalto', 'dSourceMaskedColumn') | list %}
+
+{#- Фильтруем атрибуты для SELECT: убираем те, чей attribute_pname совпадает с attribute_name из dSourceMaskedColumn #}
+{%- set select_attrs = [] %}
+{%- for attr in sorted_attrs -%}
+    {%- set should_include = true %}
+    {%- if attr.domain_code != 'dSourceMaskedColumn' %}
+        {%- if attr.attribute_pname in masked_replacements %}
+            {%- set should_include = false %}
+        {%- endif -%}
+    {%- endif -%}
+    {%- if should_include -%}
+        {%- do select_attrs.append(attr) %}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- set view_schema = structure.objectarea_pname ~ '__public' -%}
+{%- set view_name = structure.structure_pname %}
+{%- if structure.metastructure_code == 'mcRDO.msChangeDataView' %}
+    {%- set source_table = structure.structure_pname.split('__')[0] ~ '__cdc' -%}
+{%- endif %}
+{%- if structure.metastructure_code == 'mcRDO.msReplicaDataView' %}
+    {%- set source_table = structure.structure_pname.split('__')[0]  -%}
+{%- endif %}
+
+CREATE OR REPLACE VIEW {{ view_schema }}.{{ view_name }}
+(
+{%- for attr in view_attrs %}
+    {%- set col_name = attr.attribute_pname %}
+    {%- set col_comment = attr.attribute_desc or '' %}
+    {{ col_name }} COMMENT '{{ col_comment | replace("'", "''") }}'{{ ',' if not loop.last }}
+{%- endfor %}
+)
+COMMENT '{{ ("Представление, отображающее таблицу реплики данных источника " ~ source_table) | replace("'", "''") }}'
+AS SELECT
+{%- for attr in select_attrs %}
+    {%- if attr.domain_code == 'dSourceMaskedColumn' %}
+        {{ attr.attribute_pname }} AS {{ attr.attribute_name }}
+    {%- else %}
+        {{ attr.attribute_pname }}
+    {%- endif %}{{ ',' if not loop.last }}
+{%- endfor %}
+FROM {{structure.objectarea_pname}}.{{ source_table }};
+{%- endif %}

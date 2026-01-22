@@ -1,0 +1,168 @@
+{%- if structure.metastructure_code in ['mcRDO.msSourceDefinition'] -%}
+
+{%- set reg_time = metaobject.propvalues_json.reg_time -%}
+{%- set splitted_time = reg_time.split(":") -%}
+
+{%- set deleted_flag = namespace(value="NULL") -%}
+{%- set increment_flag = namespace(value="NULL") -%}
+
+{%- set json = namespace(
+    folder_name='AIRFLOW',
+    workflow_name=none,
+    server_name=none,
+    table_owner=none,
+    table_name=none,
+    table_columns=[],
+    reg_name=none,
+    workflow_desc=none,
+    workflow2reg_desc=none,
+    raw_columns=[]
+) -%}
+
+{%- for flow in metaobject.flows -%}
+  {%- if flow.metaflow_code == "mfBatchFlow" -%}
+    {%- set json.workflow_name = flow.flow_pname -%}
+    {%- set json.server_name = "AF_EIS" -%}
+    {%- set json.table_owner = metaobject.application_code -%}
+    {%- set json.table_name = metaobject.entitytype_pname -%}
+    {%- set json.workflow_desc = flow.flow_desc -%}
+  {%- endif -%}
+{%- endfor -%}
+
+{%- for attr in structure.attributes %}
+    {%- if attr.propvalues_json.deleted_flag == "true" -%}
+      {%- set deleted_flag.value = attr.attribute_pname -%}
+    {%- endif -%}
+
+    {%- if attr.propvalues_json.increment_flag == "true" -%}
+      {%- set increment_flag.value = attr.attribute_pname -%}
+    {%- endif -%}    
+
+    {%- if attr.domain_code == "dSourceKeyColumn" -%}
+      {%- set columntype_code = "K" -%}
+    {% else %}
+      {%- set columntype_code = "C" -%}
+    {%- endif -%}
+
+    {%- if not attr.domain_code.startswith("dMeta") -%}
+        {%- set column = '\t\t\t{\n\t\t\t\t"COLUMN_NAME": "' ~ attr.attribute_pname ~ ',\n\t\t\t\t"COLUMNTYPE_CODE": "' ~ columntype_code ~ '"\n\t\t\t}' -%}
+        {%- set _ = json.table_columns.append(column) -%}
+        {%- set _ = json.raw_columns.append(attr.attribute_pname) %}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- set json_str -%}
+'{
+      "FOLDER_NAME": "{{ json.folder_name }}",
+      "WORKFLOW_NAME": "{{ json.workflow_name}}",
+      "SERVER_NAME": "{{ json.server_name }}",
+      "TABLE_OWNER": "{{ json.table_owner }}",
+      "TABLE_NAME": "{{ json.table_name }}",
+      "TABLE_COLUMNS": [
+{{ json.table_columns | join(",\n")}}
+      ],
+      "REG_NAME": "REGL_CIDS_{{ metaobject.application_code | upper }}_DAILY_{{ splitted_time[0] }}H{{ splitted_time[1] }}",
+      "REG_DESC": "Регламент потока для загрузки данных системы {{ metaobject.application_code | upper }}",
+      "WORKFLOW2REG_DESC": "Поток работает ежедневно",
+      "SCHEDULE_NAME": "DAILY_{{ reg_time }}",
+      "SCHEDULE_DESC": "Каждый день в {{ reg_time }}",
+      "RUN_MODE": "DAILY",
+      "RUN_WINDOW_EXPRESSION": "select case when sysdate > to_date(to_char(sysdate, ''ddmmyyyy'') || ''{{ reg_time }}'', ''ddmmyyyy hh24:mi'') then ''START'' else '''' end from dual",
+      "WORKFLOW_DESC": "Поток для загрузки таблицы {{ structure.objectarea_pname }}.{{ structure.structure_pname }}",
+      "WORKFLOW2REG_DESC": "Поток для загрузки таблицы {{ structure.objectarea_pname }}.{{ structure.structure_pname }}",
+      "PARAMS": [
+        {
+          "PARAM_NAME": "p_cids_airflow_conn_name",
+          "PARAMVALUETYPE_CODE": "STATIC",
+          "PARAM_VALUE": "{{ structure.objectarea_pname }}"
+        },
+        {
+          "PARAM_NAME": "p_cids_workflow_mode",
+          "PARAMVALUETYPE_CODE": "STATIC",
+          "PARAM_VALUE": "regular"
+        },
+        {
+          "PARAM_NAME": "p_cids_upload_mode",
+          "PARAMVALUETYPE_CODE": "STATIC",
+          "PARAM_VALUE": "replace"
+        },
+        {
+          "PARAM_NAME": "p_cids_start_dttm",
+          "PARAMVALUETYPE_CODE": "DYNAMIC",
+          "PARAM_VALUE": "DNMPARAM_CIDS.P_CIDS_START_DTTM"
+        },
+        {
+          "PARAM_NAME": "p_cids_start_date",
+          "PARAMVALUETYPE_CODE": "DYNAMIC",
+          "PARAM_VALUE": "DNMPARAM_CIDS.P_CIDS_START_DATE"
+        },
+        {
+          "PARAM_NAME": "p_cids_end_dttm",
+          "PARAMVALUETYPE_CODE": "DYNAMIC",
+          "PARAM_VALUE": "DNMPARAM_CIDS.P_CIDS_END_DTTM"
+        },
+        {
+          "PARAM_NAME": "p_cids_end_date",
+          "PARAMVALUETYPE_CODE": "DYNAMIC",
+          "PARAM_VALUE": "DNMPARAM_CIDS.P_CIDS_END_DATE"
+        },
+        {
+          "PARAM_NAME": "p_spark_config",
+          "PARAMVALUETYPE_CODE": "STATIC",
+          "PARAM_VALUE": "{''task_ingest'': {''spark.dynamicAllocation.enabled'': ''false'', ''spark.executor.instances'': ''1'', ''spark.executor.cores'': ''2'', ''spark.executor.memory'': ''10G''}, ''task_merge_upload'': {''spark.dynamicAllocation.enabled'': ''true'', ''spark.dynamicAllocation.shuffleTracking.enabled'': ''true'', ''spark.dynamicAllocation.initialExecutors'': ''1'', ''spark.dynamicAllocation.minExecutors'': ''1'', ''spark.dynamicAllocation.maxExecutors'': ''10'', ''spark.executor.cores'': ''10'', ''spark.executor.memory'': ''50G''}, ''task_replace_upload'': {''spark.dynamicAllocation.enabled'': ''true'', ''spark.dynamicAllocation.shuffleTracking.enabled'': ''true'', ''spark.dynamicAllocation.initialExecutors'': ''1'', ''spark.dynamicAllocation.minExecutors'': ''1'', ''spark.dynamicAllocation.maxExecutors'': ''10'', ''spark.executor.cores'': ''10'', ''spark.executor.memory'': ''50G''}, ''task_replace_by_section_upload'': {''spark.dynamicAllocation.enabled'': ''true'', ''spark.dynamicAllocation.shuffleTracking.enabled'': ''true'', ''spark.dynamicAllocation.initialExecutors'': ''1'', ''spark.dynamicAllocation.minExecutors'': ''1'', ''spark.dynamicAllocation.maxExecutors'': ''10'', ''spark.executor.cores'': ''10'', ''spark.executor.memory'': ''50G''}}"
+        }
+      ],
+      "ACTIVE_FLAG": "Y",
+      "USRPARAMS": [
+        {
+          "PARAM_NAME": "p_cids_workflow_mode",
+          "PARAM_VALUE": "initial"
+        },
+        {
+          "PARAM_NAME": "p_cids_upload_mode",
+          "PARAM_VALUE": "replace"
+        }
+      ],
+      "PATCH_CODE": "{{ patch_id | upper }}"
+    }'
+{%- endset -%}
+
+DECLARE
+  a varchar2(255);
+  folder_name varchar2(255) := 'AIRFLOW';
+  workflow_name varchar2(255) := '{{ json.workflow_name }}';
+  patch_code varchar2(255) := '{{ patch_id | upper }}';
+BEGIN
+  a:= UPSERT_DEV_API_JSONS(
+    p_json => {{ json_str }},
+    p_tag_name => workflow_name,
+    p_patch_code => patch_code
+  );
+
+  a := UTL_MD_UPSERT.upsert_FLOWTASKS(
+    p_folder_name => folder_name,
+    p_workflow_name => workflow_name,
+    p_task_name => 'cids_regular_query',
+    p_sql_text => q'~SELECT {{ json.raw_columns | join(", ") }}, {{ deleted_flag.value }} AS deleted_flag, {{ increment_flag.value }} AS src_modified_stamp FROM data.{{ json.table_name }} WHERE 1=1~',
+    p_patch_code => patch_code
+  );
+  
+  a := UTL_MD_UPSERT.upsert_FLOWTASKS(
+    p_folder_name => folder_name,
+    p_workflow_name => workflow_name,
+    p_task_name => 'cids_initial_query',
+    p_sql_text => q'~SELECT {{ json.raw_columns | join(", ") }}, {{ deleted_flag.value }} AS deleted_flag, TO_TIMESTAMP('1970-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS') AS src_modified_stamp FROM data.{{ json.table_name }}~',
+    p_patch_code => patch_code
+  );
+  
+  a := UTL_MD_UPSERT.upsert_FLOWTASKS(
+    p_folder_name => folder_name,
+    p_workflow_name => workflow_name,
+    p_task_name => 'cids_reloading_query',
+    p_sql_text => q'~SELECT {{ json.raw_columns | join(", ") }}, {{ deleted_flag.value }} AS deleted_flag, TO_TIMESTAMP('1970-01-01 00:00:00', 'YYYY-MM-DD HH24:MI:SS') AS src_modified_stamp FROM data.{{ json.table_name }}~',
+    p_patch_code => patch_code
+  );
+  
+END;
+/
+{% endif %}

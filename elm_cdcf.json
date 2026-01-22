@@ -1,0 +1,270 @@
+{
+  "diagrams": {
+    "f8d4d2bd-f138-4519-aa69-54e2635ed701": {
+      "changeDt": "2026-01-16 17:30:18.698",
+      "createDt": "2026-01-16 17:30:18.698",
+      "diagramWithParameters": {
+        "blockFlag": false,
+        "changeDt": "2026-01-16 17:30:18.698",
+        "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+        "createDt": "2026-01-16 17:30:18.698",
+        "diagramDescription": "CDCF Journal MS SQL to Kafka for elm_tst",
+        "diagramId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
+        "diagramKeyFields": [],
+        "diagramNameEntity": {
+          "id": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
+          "objectId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
+          "objectName": "cdcf__mssql2kafka_bdp__elm_tst"
+        },
+        "diagramType": "DEFAULT",
+        "errorResponseFlag": false,
+        "inOutParameters": [],
+        "lastChangeByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+        "lifeCycleState": "ACTIVE",
+        "metaInfo": {
+          "nodeCounter": 4
+        },
+        "notificationEmails": [],
+        "saveDiagramMessage": false,
+        "treatTerminalStateAsInitial": false,
+        "versionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
+        "versionName": "latest",
+        "versionType": "LATEST"
+      },
+      "links": [
+        {
+          "diagramVersion": {
+            "versionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701"
+          },
+          "diagramVersionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
+          "linkId": "61142c3a-d3a3-40e3-a136-915f5b9fbfcd",
+          "nextNode": {
+            "nodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9"
+          },
+          "nextNodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9",
+          "prevNode": {
+            "nodeVersionId": "b5453bb5-f808-581f-b2ef-c167bc374f9b"
+          },
+          "prevNodeVersionId": "b5453bb5-f808-581f-b2ef-c167bc374f9b"
+        },
+        {
+          "diagramVersion": {
+            "versionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701"
+          },
+          "diagramVersionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
+          "linkId": "abb46022-6ae7-4544-b8b4-7845eb55c9bb",
+          "nextNode": {
+            "nodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771"
+          },
+          "nextNodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771",
+          "prevNode": {
+            "nodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9"
+          },
+          "prevNodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9"
+        },
+        {
+          "diagramVersion": {
+            "versionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701"
+          },
+          "diagramVersionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
+          "linkId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+          "nextNode": {
+            "nodeVersionId": "fa789b5b-dddf-43c1-9816-081ec38f28a9"
+          },
+          "nextNodeVersionId": "fa789b5b-dddf-43c1-9816-081ec38f28a9",
+          "prevNode": {
+            "nodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771"
+          },
+          "prevNodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771"
+        }
+      ],
+      "nodes": [
+        {
+          "diagramVersion": {
+            "versionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701"
+          },
+          "diagramVersionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
+          "displayType": "Источник - CDC - MS SQL MultiTable",
+          "isTemplate": false,
+          "jsonProperty": {
+            "capture_all_tables": false,
+            "data_provider_uuid": "7ea2de0e-b9cd-46fa-86a2-bd483edb90eb",
+            "debezium": {
+              "properties": []
+            },
+            "execution_options": {
+              "logging": true
+            },
+            "include_schema": false,
+            "nodeType": "135",
+            "tables": [
+              {
+                "name": "dbo.lz_agreement_types",
+                "row_key": "dbo.lz_agreement_types__id"
+              },
+              {
+                "name": "dbo.lz_books",
+                "row_key": "dbo.lz_books__id"
+              }
+            ],
+            "timezone": "UTC"
+          },
+          "jsonPropertyHashCode": -820458874,
+          "metaInfo": {
+            "position": {
+              "x": 355.0,
+              "y": 300.0
+            }
+          },
+          "nodeId": "b5453bb5-f808-581f-b2ef-c167bc374f9b",
+          "nodeName": "Источник - CDC - MS SQL MultiTable_0",
+          "nodeTypeId": 135,
+          "nodeVersionId": "b5453bb5-f808-581f-b2ef-c167bc374f9b",
+          "validState": "VALID"
+        },
+        {
+          "diagramVersion": {
+            "versionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701"
+          },
+          "diagramVersionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
+          "displayType": "Трансформация - Простая - Маппинг",
+          "isTemplate": false,
+          "jsonProperty": {
+            "execution_options": {
+              "logging": true,
+              "start_new_chain": false
+            },
+            "mapping": [
+              {
+                "alias": "data",
+                "expression": "data"
+              },
+              {
+                "alias": "table_name",
+                "expression": "table_name"
+              },
+              {
+                "alias": "key_value",
+                "expression": "cast(\n  case \n  when table_name in (\n    'dbo.lz_agreement_types', 'dbo.lz_books'\n  )\n  then IF(json_value(data, '$.op') = 'd', json_value(data, '$.before.id'), json_value(data, '$.after.id')) \n  end\nas string )"
+              },
+              {
+                "alias": "topic_body",
+                "expression": "replace(lower(table_name), '.', '__')"
+              },
+              {
+                "alias": "postfix",
+                "expression": "'journal'"
+              }
+            ],
+            "nodeType": "104"
+          },
+          "jsonPropertyHashCode": -889810507,
+          "metaInfo": {
+            "position": {
+              "x": 845.0,
+              "y": 361.0
+            }
+          },
+          "nodeId": "87d26546-b18c-5395-b540-e7d1b97b1be9",
+          "nodeName": "elm_key_mapping",
+          "nodeTypeId": 104,
+          "nodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9",
+          "validState": "VALID"
+        },
+        {
+          "diagramVersion": {
+            "versionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701"
+          },
+          "diagramVersionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
+          "displayType": "Трансформация - Фильтр",
+          "isTemplate": false,
+          "jsonProperty": {
+            "execution_options": {
+              "logging": true,
+              "start_new_chain": false
+            },
+            "filter": "table_name in (\n    'dbo.lz_agreement_types', 'dbo.lz_books'\n)",
+            "nodeType": "105"
+          },
+          "jsonPropertyHashCode": -832865046,
+          "metaInfo": {
+            "position": {
+              "x": 1323.0,
+              "y": 361.0
+            }
+          },
+          "nodeId": "095f24b9-9278-541a-a82c-0cb9c0ae2771",
+          "nodeName": "elm_filter",
+          "nodeTypeId": 105,
+          "nodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771",
+          "validState": "VALID"
+        },
+        {
+          "diagramVersion": {
+            "versionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701"
+          },
+          "diagramVersionId": "f8d4d2bd-f138-4519-aa69-54e2635ed701",
+          "displayType": "Приёмник - Брокер сообщений - Kafka",
+          "isTemplate": false,
+          "jsonProperty": {
+            "execution_options": {},
+            "kafka": {
+              "producer": {
+                "properties": [
+                  {
+                    "name": "transaction.timeout.ms",
+                    "row_key": "65d469aa-79e5-461c-bd37-78b82893785b",
+                    "value": "900000"
+                  }
+                ],
+                "semantic": "AT_LEAST_ONCE",
+                "topic_selection_type": "dynamic",
+                "topic_selector": {
+                  "delimiter": "__",
+                  "fields": [
+                    "topic_body",
+                    "postfix"
+                  ],
+                  "prefix": "elm__"
+                }
+              }
+            },
+            "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+            "nodeType": "103",
+            "serde": {
+              "key": {
+                "enabled": true,
+                "format": "csv",
+                "key_by": [
+                  "key_value"
+                ]
+              },
+              "value": {
+                "format": "json"
+              }
+            }
+          },
+          "jsonPropertyHashCode": 572324776,
+          "metaInfo": {
+            "position": {
+              "x": 1783.0,
+              "y": 361.0
+            }
+          },
+          "nodeId": "fa789b5b-dddf-43c1-9816-081ec38f28a9",
+          "nodeName": "Kafka elm",
+          "nodeTypeId": 103,
+          "nodeVersionId": "fa789b5b-dddf-43c1-9816-081ec38f28a9",
+          "validState": "VALID"
+        }
+      ],
+      "variableLinkAssociations": [],
+      "variableNodeAssociations": []
+    }
+  },
+  "rootIdsAndDescriptions": {
+    "f8d4d2bd-f138-4519-aa69-54e2635ed701": {
+      "f8d4d2bd-f138-4519-aa69-54e2635ed701": "cdcf__mssql2kafka_bdp__elm_tst (latest)"
+    }
+  }
+}

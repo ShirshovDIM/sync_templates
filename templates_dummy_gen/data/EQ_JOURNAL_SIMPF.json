@@ -1,0 +1,629 @@
+{
+    "diagrams": {
+        "f564c2ee-fdeb-4814-8ced-590cc29230b7": {
+            "diagramWithParameters": {
+                "lifeCycleState": "ACTIVE",
+                "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                "versionName": "latest",
+                "versionType": "LATEST",
+                "diagramId": "c50c72ae-6e07-4842-9e90-3af6ed440151",
+                "diagramNameEntity": {
+                    "id": "0aeb9348-95fc-1e60-8196-33ed826e227a",
+                    "objectId": "c50c72ae-6e07-4842-9e90-3af6ed440151",
+                    "objectName": "EQ_JOURNAL_SIMPF"
+                },
+                "createDt": "2025-05-22 07:03:45.638",
+                "changeDt": "2025-05-22 09:03:05.620",
+                "lastChangeByUser": "6e62ade6-df15-4c5d-8ddf-0ad622c9db9b",
+                "createByUser": "8f533ad1-0f64-46e5-b7fb-1f147bd67993",
+                "blockFlag": false,
+                "errorResponseFlag": false,
+                "treatTerminalStateAsInitial": false,
+                "diagramDescription": "Maintaining phone numbers and IMSI of clients.\nJournal diagram SIMPF, EQ source.",
+                "metaInfo": {
+                    "nodeCounter": 2
+                },
+                "saveDiagramMessage": false,
+                "diagramType": "DEFAULT",
+                "notificationEmails": [],
+                "inOutParameters": [
+                    {
+                        "parameterVersionId": "830c62ac-8872-4373-8472-a31332fb44d7",
+                        "parameterId": "3d812219-b815-430c-a117-729bd5209bdb",
+                        "parameterName": "diagram_execute_status",
+                        "diagramVersion": {
+                            "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                        },
+                        "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                        "primitiveTypeId": "2",
+                        "primitiveType": {
+                            "typeId": "2"
+                        },
+                        "arrayFlag": false,
+                        "parameterType": "OUT",
+                        "sourceType": "OUTER",
+                        "scopeType": "DEFAULT",
+                        "defaultValue": "'0'",
+                        "metaInfo": {
+                            "orderNum": 0,
+                            "isExecuteStatus": true
+                        },
+                        "typeId": "2"
+                    }
+                ]
+            },
+            "nodes": [
+                {
+                    "nodeVersionId": "ab2cf5ad-cdbf-4244-a624-17556ae3eae7",
+                    "nodeId": "45737029-370b-4ab3-90d7-c155572f0da0",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "nodeTypeId": 111,
+                    "nodeName": "simpf_cdc_tech",
+                    "nodeDescription": "Mapping and filling in the technical attributes of the CDC structure",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import java.time.LocalDateTime\nimport java.time.format.DateTimeFormatter\nimport java.time.temporal.ChronoUnit\n\njob_insert_id = (long) -1\njob_cdc_id = (long) __CONFIG__.get(\"job.instance_id\") \ntrx_id = null\ncsn_id = null\nbroker_partition_id = (long) BROKER_PARTITION\nbroker_offset_id = (long) BROKER_OFFSET_ID\ndeleted_flag = (actionType == 'DELETE') ? true : false\nsys_insert_stamp = LocalDateTime.now().plusHours(3)\nsrc_modified_stamp = LocalDateTime.parse(eqTimestamp, DateTimeFormatter.ofPattern(\"yyyy-MM-dd HH:mm:ss.SSSSSS\"))\n\ndef actionTypeMap = [\n    \"ADD\": \"I\",\n    \"MODIFY\": \"U\",\n    \"DELETE\": \"D\",\n    \"ARCHIVE\": \"A\"\n]\nopertype_code = actionTypeMap[actionType]?: \"X\"",
+                        "schema_id": "0cffa967-ceda-4436-a77a-4fe6d608e40f",
+                        "schema_version_id": "0aeb91a7-95f0-1018-8195-f192c668031a",
+                        "in": [
+                            "BROKER_PARTITION",
+                            "BROKER_OFFSET_ID",
+                            "eqTimestamp",
+                            "actionType"
+                        ],
+                        "out": [
+                            "job_insert_id",
+                            "job_cdc_id",
+                            "trx_id",
+                            "csn_id",
+                            "broker_partition_id",
+                            "broker_offset_id",
+                            "deleted_flag",
+                            "sys_insert_stamp",
+                            "src_modified_stamp",
+                            "opertype_code"
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": -1157033136,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2709.8767815407978,
+                            "y": 909.3526562129782
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Groovy"
+                },
+                {
+                    "nodeVersionId": "ec0c001c-39f1-432c-b105-27a0afe67288",
+                    "nodeId": "9ff3f139-ebf2-4f33-861e-b976b976564b",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "nodeTypeId": 111,
+                    "nodeName": "simpf_protection",
+                    "nodeDescription": "The masking and hashing block for SIMPF data",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import com.alfa.DataProtection;\nimport com.fasterxml.jackson.databind.ObjectMapper;\n\ndef (\nicebergDatabase, icebergTableName, metaDataBaseSdiName,\nsaltIcebergSdiName, sourceDatabaseName, sourceTableName\n) = [\n\"bdp__wallet\", \"md_hashrules\", \"UM\",\n\"iceberg_bdp\", \"eq\", \"simpf\"\n]\n\ndef properties = __PROPERTIES__\ndef s3Params = [\n\"bucketName\": \"nova\",\n\"maskingJarPath\": \"libs/masking/masking-functions-1.0-SNAPSHOT.jar\",\n]\n\n@Singleton(lazy = true)\nclass LocalDataProtector {\nDataProtection protector\nprivate static boolean isInitialized = false\nstatic LocalDataProtector initialize(\nicebergDatabase,icebergTableName,metaDataBaseSdiName,saltIcebergSdiName,\nproperties,sourceDatabaseName,sourceTableName,s3Params\n) {\nLocalDataProtector instance = LocalDataProtector.instance\nif (!isInitialized) {\ninstance.protector = new DataProtection.Builder()\n.setIcebergDatabase(icebergDatabase).setIcebergTableName(icebergTableName)\n.setMetaDataBaseSdiName(metaDataBaseSdiName).setS3Params(s3Params)\n.setProperties(properties).setSourceDatabaseName(sourceDatabaseName)\n.setSourceTableName(sourceTableName).setSaltIcebergSdiName(saltIcebergSdiName)\n.build()\nisInitialized = true\n}\nreturn instance\n}\n}\n\ndef protector = LocalDataProtector.initialize(\nicebergDatabase,icebergTableName,metaDataBaseSdiName,saltIcebergSdiName,\nproperties,sourceDatabaseName,sourceTableName,s3Params,\n).protector\n\nif (flag_key) {\n    def mapper = new ObjectMapper()\n    def meta = [:]\n    if (flag_value) {\n        meta = mapper.readValue(flag_value, Map)\n    } \n    protector.processFlag(flag_key, meta)\n}\n\nsimcus = SIMCUS\nsimclc = SIMCLC\nsimphone = SIMPHONE\nsimphone_hash = (SIMPHONE == null) ? null : (SIMPHONE.trim() == '') ? null : protector.hashData(\"simphone\", SIMPHONE.trim())\nsimphone_mask = protector.maskData(\"simphone\", SIMPHONE)\nsimprc = SIMPRC\nsimimsi = SIMIMSI\nsimdtim = (SIMDTIM == null) ? null : SIMDTIM.longValue()\nsimmonstr = SIMMONSTR\nsimmonend = SIMMONEND\nsimxm = SIMXM\nsimmon = SIMMON\nsimact = SIMACT\nsimvald = SIMVALD\nsimevnt = SIMEVNT\nsimulm = SIMULM\nsimtlm = SIMTLM\nsimevntlm = SIMEVNTLM\nsimimei = SIMIMEI\nsimimeitlm = SIMIMEITLM\nsimimsitlm = SIMIMSITLM",
+                        "schema_id": "4a8e6c92-4208-4e7f-a4b2-9e5a3d72696b",
+                        "schema_version_id": "0aeb9348-95fc-1e60-8196-33de6ae32226",
+                        "in": [
+                            "flag_key",
+                            "flag_value",
+                            "SIMCUS",
+                            "SIMCLC",
+                            "SIMPHONE",
+                            "SIMPRC",
+                            "SIMIMSI",
+                            "SIMDTIM",
+                            "SIMMONSTR",
+                            "SIMMONEND",
+                            "SIMXM",
+                            "SIMMON",
+                            "SIMACT",
+                            "SIMVALD",
+                            "SIMEVNT",
+                            "SIMULM",
+                            "SIMTLM",
+                            "SIMEVNTLM",
+                            "SIMIMEI",
+                            "SIMIMEITLM",
+                            "SIMIMSITLM"
+                        ],
+                        "out": [
+                            "simcus",
+                            "simclc",
+                            "simphone",
+                            "simphone_hash",
+                            "simphone_mask",
+                            "simprc",
+                            "simimsi",
+                            "simdtim",
+                            "simmonstr",
+                            "simmonend",
+                            "simxm",
+                            "simmon",
+                            "simact",
+                            "simvald",
+                            "simevnt",
+                            "simulm",
+                            "simtlm",
+                            "simevntlm",
+                            "simimei",
+                            "simimeitlm",
+                            "simimsitlm"
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": 1016749863,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2110.5081976832003,
+                            "y": 161.24217083415078
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Groovy"
+                },
+                {
+                    "nodeVersionId": "e02f4f20-8401-4885-9039-8b49177d63ff",
+                    "nodeId": "46e94c7f-ad02-42b5-877e-4bb7c1743c02",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "nodeTypeId": 105,
+                    "nodeName": "simpf_filter",
+                    "nodeDescription": "Data filter to maintain change flags",
+                    "jsonProperty": {
+                        "nodeType": "105",
+                        "filter": "flag_key IS NULL",
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": -554994373,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2110.1037714012527,
+                            "y": 707.5945074497033
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Фильтр"
+                },
+                {
+                    "nodeVersionId": "afb8176f-1eee-4b56-ad82-ba8874cf565f",
+                    "nodeId": "436426eb-4ad9-4fa0-ac3d-0f2e23371bc3",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "nodeTypeId": 130,
+                    "nodeName": "simpf_union",
+                    "nodeDescription": "union",
+                    "jsonProperty": {
+                        "nodeType": "130",
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "complete_schemes_equality": false
+                    },
+                    "jsonPropertyHashCode": 79688,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1609.0,
+                            "y": 161.0958682112
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Объединение"
+                },
+                {
+                    "nodeVersionId": "6ae78959-d340-4b3b-a5e5-6aaca812ff9b",
+                    "nodeId": "a8392290-a3e4-4360-a5fb-53eed8f2b9c0",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "nodeTypeId": 121,
+                    "nodeName": "simpf_rdo",
+                    "jsonProperty": {
+                        "nodeType": "121",
+                        "data_provider_uuid": "0aeb93cc-95b8-1d5b-8195-cc7c38e50d50",
+                        "table_name": "eq.simpf",
+                        "field_mappings": [],
+                        "additional_properties": [
+                            {
+                                "name": "upsert-enabled",
+                                "value": "true",
+                                "row_key": "263e877a-3518-400e-a169-3b13e9f606d8"
+                            },
+                            {
+                                "name": "target-file-size-bytes",
+                                "value": "268435456",
+                                "row_key": "2c0c96fa-61c4-4d46-861c-a931c71922a1"
+                            }
+                        ]
+                    },
+                    "jsonPropertyHashCode": 2001143721,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 3207.370461481443,
+                            "y": 508.12214858858994
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Приемник - Iceberg"
+                },
+                {
+                    "nodeVersionId": "930ddb99-0437-4b20-a123-0d96e7e50ac2",
+                    "nodeId": "5eb5de30-e65e-41f1-b0b1-1ddb09f15a58",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "nodeTypeId": 102,
+                    "nodeName": "EQ_JOURNAL_SIMPF",
+                    "jsonProperty": {
+                        "nodeType": "102",
+                        "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+                        "schema_id": "45b18529-628f-48fe-9860-bc50d13ff799",
+                        "schema_version_id": "0aeb9348-95fc-1e60-8196-33cb3e8b220c",
+                        "boundedness": "CONTINUOUS_UNBOUNDED",
+                        "serde": {
+                            "value": {
+                                "format": "json"
+                            },
+                            "key": {
+                                "enabled": false
+                            },
+                            "headers": {
+                                "enabled": false
+                            },
+                            "partition": {
+                                "name": "BROKER_PARTITION",
+                                "enabled": true
+                            },
+                            "offset": {
+                                "name": "BROKER_OFFSET_ID",
+                                "enabled": true
+                            },
+                            "timestamp": {
+                                "enabled": false
+                            }
+                        },
+                        "kafka": {
+                            "consumer": {
+                                "group_id": "eq_cids_simpf_consumer",
+                                "start_offsets": {
+                                    "committed": {
+                                        "reset_strategy": "earliest"
+                                    },
+                                    "type": "committed"
+                                },
+                                "topic": "EQ_JOURNAL_SIMPF",
+                                "properties": []
+                            }
+                        },
+                        "execution_options": {
+                            "logging": true
+                        }
+                    },
+                    "jsonPropertyHashCode": 1010303005,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1009.0,
+                            "y": 311.0
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Источник - Kafka"
+                },
+                {
+                    "nodeVersionId": "2d8944f0-7dd5-40fb-8660-242d2d187499",
+                    "nodeId": "bf3efbb0-d091-400a-9484-40185f97df63",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "nodeTypeId": 111,
+                    "nodeName": "simpf_rdo_meta",
+                    "nodeDescription": "Mapping and filling in the technical attributes of the RDO structure",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import java.time.LocalDateTime\nimport java.time.format.DateTimeFormatter\nimport java.time.temporal.ChronoUnit\n\njob_insert_id = (long) -1\njob_update_id = (long) -1\njob_cdc_id = (long) __CONFIG__.get(\"job.instance_id\") \ntrx_id = null\ncsn_id = null\nbroker_partition_id = (long) BROKER_PARTITION\nbroker_offset_id = (long) BROKER_OFFSET_ID\ndeleted_flag = (actionType == 'DELETE') ? true : false\nsys_insert_stamp = null\nsys_update_stamp = LocalDateTime.now().plusHours(3)\nsrc_modified_stamp = LocalDateTime.parse(eqTimestamp, DateTimeFormatter.ofPattern(\"yyyy-MM-dd HH:mm:ss.SSSSSS\"))\n\ndef actionTypeMap = [\n    \"ADD\": \"I\",\n    \"MODIFY\": \"U\",\n    \"DELETE\": \"D\",\n    \"ARCHIVE\": \"A\"\n]\nopertype_last_code = actionTypeMap[actionType]?: \"X\"",
+                        "schema_id": "e48c1f44-f6e6-46c1-a304-7b45e9265146",
+                        "schema_version_id": "0aeb91a7-95f0-1018-8195-f1909ba0030f",
+                        "in": [
+                            "BROKER_PARTITION",
+                            "BROKER_OFFSET_ID",
+                            "eqTimestamp",
+                            "actionType"
+                        ],
+                        "out": [
+                            "job_insert_id",
+                            "job_update_id",
+                            "job_cdc_id",
+                            "trx_id",
+                            "csn_id",
+                            "broker_partition_id",
+                            "broker_offset_id",
+                            "deleted_flag",
+                            "sys_insert_stamp",
+                            "sys_update_stamp",
+                            "src_modified_stamp",
+                            "opertype_last_code"
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": 798338127,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2708.624697812045,
+                            "y": 508.0596954887436
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Groovy"
+                },
+                {
+                    "nodeVersionId": "8694dc0f-a0b3-4f56-9a8f-63274d16f140",
+                    "nodeId": "b4e60477-9485-45ef-b09c-9f871d5bba8a",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "nodeTypeId": 102,
+                    "nodeName": "simpf_sensitive_flags",
+                    "jsonProperty": {
+                        "nodeType": "102",
+                        "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+                        "boundedness": "CONTINUOUS_UNBOUNDED",
+                        "serde": {
+                            "value": {
+                                "format": "string",
+                                "single_field_name": "flag_value"
+                            },
+                            "key": {
+                                "name": "flag_key",
+                                "enabled": true,
+                                "format": "string"
+                            },
+                            "headers": {
+                                "enabled": false
+                            },
+                            "partition": {
+                                "enabled": false
+                            },
+                            "offset": {
+                                "enabled": false
+                            },
+                            "timestamp": {
+                                "enabled": false
+                            }
+                        },
+                        "kafka": {
+                            "consumer": {
+                                "group_id": "eq_cids_simpf_consumer",
+                                "start_offsets": {
+                                    "committed": {
+                                        "reset_strategy": "earliest"
+                                    },
+                                    "type": "committed"
+                                },
+                                "topic": "tracking_sensitive_flags",
+                                "properties": []
+                            }
+                        },
+                        "execution_options": {
+                            "logging": true
+                        }
+                    },
+                    "jsonPropertyHashCode": -1461042900,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1006.0,
+                            "y": 7.0
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Источник - Kafka"
+                },
+                {
+                    "nodeVersionId": "06d974c6-3768-4614-a9a3-63010a089156",
+                    "nodeId": "ed9dd2a0-b9da-4d57-8f90-887c266c1bc2",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "nodeTypeId": 121,
+                    "nodeName": "simpf_cdc",
+                    "jsonProperty": {
+                        "nodeType": "121",
+                        "data_provider_uuid": "0aeb93cc-95b8-1d5b-8195-cc7c38e50d50",
+                        "table_name": "eq.simpf_cdc",
+                        "field_mappings": [],
+                        "additional_properties": [
+                            {
+                                "name": "upsert-enabled",
+                                "value": "false",
+                                "row_key": "263e877a-3518-400e-a169-3b13e9f606d8"
+                            },
+                            {
+                                "name": "target-file-size-bytes",
+                                "value": "268435456",
+                                "row_key": "2c0c96fa-61c4-4d46-861c-a931c71922a1"
+                            }
+                        ]
+                    },
+                    "jsonPropertyHashCode": -1185941795,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 3213.3265069807976,
+                            "y": 909.8627111249784
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Приемник - Iceberg"
+                }
+            ],
+            "links": [
+                {
+                    "linkId": "fadfc527-ee33-4d72-8d7f-c95eeac34c64",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "prevNode": {
+                        "nodeVersionId": "ec0c001c-39f1-432c-b105-27a0afe67288"
+                    },
+                    "prevNodeVersionId": "ec0c001c-39f1-432c-b105-27a0afe67288",
+                    "nextNode": {
+                        "nodeVersionId": "e02f4f20-8401-4885-9039-8b49177d63ff"
+                    },
+                    "nextNodeVersionId": "e02f4f20-8401-4885-9039-8b49177d63ff"
+                },
+                {
+                    "linkId": "437e768c-778b-49ab-bd30-5e8297c8727a",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "prevNode": {
+                        "nodeVersionId": "8694dc0f-a0b3-4f56-9a8f-63274d16f140"
+                    },
+                    "prevNodeVersionId": "8694dc0f-a0b3-4f56-9a8f-63274d16f140",
+                    "nextNode": {
+                        "nodeVersionId": "afb8176f-1eee-4b56-ad82-ba8874cf565f"
+                    },
+                    "nextNodeVersionId": "afb8176f-1eee-4b56-ad82-ba8874cf565f"
+                },
+                {
+                    "linkId": "e5ce169e-dbec-4b8c-ae11-25dedc06b6de",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "prevNode": {
+                        "nodeVersionId": "afb8176f-1eee-4b56-ad82-ba8874cf565f"
+                    },
+                    "prevNodeVersionId": "afb8176f-1eee-4b56-ad82-ba8874cf565f",
+                    "nextNode": {
+                        "nodeVersionId": "ec0c001c-39f1-432c-b105-27a0afe67288"
+                    },
+                    "nextNodeVersionId": "ec0c001c-39f1-432c-b105-27a0afe67288"
+                },
+                {
+                    "linkId": "3cf8c9ce-7924-433c-96b5-0e94583cb61f",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "prevNode": {
+                        "nodeVersionId": "930ddb99-0437-4b20-a123-0d96e7e50ac2"
+                    },
+                    "prevNodeVersionId": "930ddb99-0437-4b20-a123-0d96e7e50ac2",
+                    "nextNode": {
+                        "nodeVersionId": "afb8176f-1eee-4b56-ad82-ba8874cf565f"
+                    },
+                    "nextNodeVersionId": "afb8176f-1eee-4b56-ad82-ba8874cf565f"
+                },
+                {
+                    "linkId": "d4d3d50a-b418-4eb1-9b9b-a8675a7429ba",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "prevNode": {
+                        "nodeVersionId": "2d8944f0-7dd5-40fb-8660-242d2d187499"
+                    },
+                    "prevNodeVersionId": "2d8944f0-7dd5-40fb-8660-242d2d187499",
+                    "nextNode": {
+                        "nodeVersionId": "6ae78959-d340-4b3b-a5e5-6aaca812ff9b"
+                    },
+                    "nextNodeVersionId": "6ae78959-d340-4b3b-a5e5-6aaca812ff9b"
+                },
+                {
+                    "linkId": "1a86dd2c-3b06-4cc2-955c-ff67ad0fd081",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "prevNode": {
+                        "nodeVersionId": "e02f4f20-8401-4885-9039-8b49177d63ff"
+                    },
+                    "prevNodeVersionId": "e02f4f20-8401-4885-9039-8b49177d63ff",
+                    "nextNode": {
+                        "nodeVersionId": "ab2cf5ad-cdbf-4244-a624-17556ae3eae7"
+                    },
+                    "nextNodeVersionId": "ab2cf5ad-cdbf-4244-a624-17556ae3eae7"
+                },
+                {
+                    "linkId": "38638cbd-6d17-4148-a9bb-716593fb1c11",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "prevNode": {
+                        "nodeVersionId": "ab2cf5ad-cdbf-4244-a624-17556ae3eae7"
+                    },
+                    "prevNodeVersionId": "ab2cf5ad-cdbf-4244-a624-17556ae3eae7",
+                    "nextNode": {
+                        "nodeVersionId": "06d974c6-3768-4614-a9a3-63010a089156"
+                    },
+                    "nextNodeVersionId": "06d974c6-3768-4614-a9a3-63010a089156"
+                },
+                {
+                    "linkId": "ddd374d3-ff71-4f8c-9da9-68103b8fafd5",
+                    "diagramVersion": {
+                        "versionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7"
+                    },
+                    "diagramVersionId": "f564c2ee-fdeb-4814-8ced-590cc29230b7",
+                    "prevNode": {
+                        "nodeVersionId": "e02f4f20-8401-4885-9039-8b49177d63ff"
+                    },
+                    "prevNodeVersionId": "e02f4f20-8401-4885-9039-8b49177d63ff",
+                    "nextNode": {
+                        "nodeVersionId": "2d8944f0-7dd5-40fb-8660-242d2d187499"
+                    },
+                    "nextNodeVersionId": "2d8944f0-7dd5-40fb-8660-242d2d187499"
+                }
+            ],
+            "variableLinkAssociations": [],
+            "variableNodeAssociations": [],
+            "changeDt": "2025-05-22 09:03:05.620",
+            "createDt": "2025-05-22 07:03:45.638"
+        }
+    },
+    "rootIdsAndDescriptions": {
+        "f564c2ee-fdeb-4814-8ced-590cc29230b7": {
+            "f564c2ee-fdeb-4814-8ced-590cc29230b7": "EQ_JOURNAL_SIMPF (latest)"
+        }
+    }
+}

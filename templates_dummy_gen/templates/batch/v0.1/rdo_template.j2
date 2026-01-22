@@ -1,0 +1,146 @@
+{%- set required_tech_columns = namespace(
+    values=[
+        "job_insert_id",
+        "job_update_id",
+        "job_cdc_id",
+        "deleted_flag",
+        "sys_update_stamp",
+        "src_modified_stamp",
+        "opertype_last_code"
+    ]
+) -%}
+
+{%- set rdo_structure = namespace(
+    objectarea_pname=none,
+    structure_pname=none,
+    attributes=none,
+    partitions=none,
+    structure_desc=none
+) -%}
+
+{%- for structure in metaobject.structures -%}
+    {%- if structure.metastructure_code == "mcRDO.msReplicaDataObject" -%}
+        {%- set rdo_structure.objectarea_pname = structure.objectarea_pname -%}
+        {%- set rdo_structure.structure_pname = structure.structure_pname -%}
+        {%- set rdo_structure.attributes = structure.attributes -%}
+        {%- set rdo_structure.structure_desc = structure.structure_desc %}
+
+        {%- if structure.partitions -%}
+            {%- set rdo_structure.partitions = structure.partitions.partition_attributes.partition_expr -%}
+        {%- endif -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- set full_table_name = rdo_structure.objectarea_pname ~ "." ~ rdo_structure.structure_pname %}
+{%- set columns = namespace(values=[]) -%}
+{%- set tblproperties = namespace(values=[]) -%}
+{%- set structure_desc = none %}
+{%- set identifier_fields = namespace(values=[]) -%}
+{%- set sort_order_expressions = namespace(values=[]) -%}
+
+{%- for attr in rdo_structure.attributes %}
+    {%- if attr.domain_code == "dSourceKeyColumn" -%}
+        {%- set attribute_name = attr.attribute_pname -%}
+        {%- set attribute_type = attr.tooldatatype_code -%}
+
+        {%- if attr.tooldatatype_code == "timestamp" -%}
+            {%- set attribute_type = "timestamp_ntz" -%}
+        {%- endif -%}
+
+        {%- set column_string = "    " ~ attribute_name ~ " " ~ attribute_type | upper ~ " NOT NULL" -%}
+
+        {% if attr.attribute_desc %}
+            {%- set column_string = column_string ~ " COMMENT " ~ "'" ~ attr.attribute_desc ~ "'" -%}
+        {%- endif -%}
+
+        {%- set _ = columns.values.append(column_string) -%}
+        {%- set _ = tblproperties.values.append("\t'write.metadata.metrics.column." ~ attr.attribute_pname ~ "'='full'") -%}
+        {%- set _ = identifier_fields.values.append(attr.attribute_pname)%}
+        {%- set _ = sort_order_expressions.values.append(attr.attribute_pname ~ " ASC NULLS LAST") -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- for attr in rdo_structure.attributes %}
+    {%- if attr.domain_code == "dSourceColumn" -%}
+        {%- set attribute_name = attr.attribute_pname -%}
+        {%- set attribute_type = attr.tooldatatype_code -%}
+
+        {%- if attr.tooldatatype_code == "timestamp" -%}
+            {%- set attribute_type = "timestamp_ntz" -%}
+        {%- endif -%}
+
+        {%- set column_string = "    " ~ attribute_name ~ " " ~ attribute_type | upper -%}
+        {% if attr.attribute_desc %}
+            {%- set column_string = column_string ~ " COMMENT " ~ "'" ~ attr.attribute_desc ~ "'" -%}
+        {%- endif -%}
+
+        {%- if attr.tooldatatype_code == "timestamp" -%}
+            {%- set _ = tblproperties.values.append("\t'write.metadata.metrics.column." ~ attr.attribute_pname ~ "'='full'") -%}
+        {%- endif -%}
+
+        {%- set _ = columns.values.append(column_string) -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- for attr in rdo_structure.attributes %}
+    {%- if attr.domain_code.startswith("dMeta") -%}
+        {%- set attribute_name = attr.attribute_pname -%}
+        {%- set attribute_type = attr.tooldatatype_code -%}
+
+        {%- if attr.tooldatatype_code == "timestamp" -%}
+            {%- set attribute_type = "timestamp_ntz" -%}
+        {%- endif -%}
+
+        {%- set column_string = "    " ~ attribute_name ~ " " ~ attribute_type | upper -%}
+
+            {%- if attribute_name in required_tech_columns.values -%}
+                {%- set column_string  = column_string ~ " NOT NULL" -%}
+            {%- endif -%}
+
+            {% if attr.attribute_desc %}
+                {%- set column_string = column_string ~ " COMMENT " ~ "'" ~ attr.attribute_desc ~ "'" -%}
+            {%- endif -%}
+
+        {%- set _ = columns.values.append(column_string) -%}
+        {%- set _ = tblproperties.values.append("\t'write.metadata.metrics.column." ~ attr.attribute_pname ~ "'='full'") -%}
+    {%- endif -%}
+{%- endfor -%}
+
+DROP TABLE IF EXISTS {{ full_table_name }} PURGE;
+
+CREATE OR REPLACE TABLE {{ full_table_name }} (
+{{ columns.values | join(",\n") }}
+)
+USING ICEBERG
+{% if rdo_structure.partitions -%}
+PARTITIONED BY {{ rdo_structure.partitions }}
+{% endif -%}
+{% if rdo_structure.structure_desc -%}
+COMMENT '{{ rdo_structure.structure_desc }}'
+{% endif -%}
+TBLPROPERTIES (
+    'format-version'='2',
+    'write.format.default'='parquet',
+    'write.parquet.compression-codec'='zstd',
+    'write.parquet.compression-level'='3',
+    'flink.max-continuous-empty-commits'='1',
+    'write.target-file-size-bytes'='536870912',
+    'write.parquet.row-group-size-bytes'='134217728',
+    'read.split.target-size'='134217728',
+    'write.distribution-mode'='hash',
+    'write.metadata.delete-after-commit.enabled'='true',
+    'write.metadata.previous-versions-max'='100',
+    'read.parquet.vectorization.enabled'='true',
+    'write.metadata.metrics.default'='none',
+{{ tblproperties.values | join(",\n") }}
+);
+
+{% if identifier_fields.values -%}
+ALTER TABLE {{ full_table_name }} SET IDENTIFIER FIELDS {{ identifier_fields.values | join(', ') }};
+{%- endif %}
+
+{% if rdo_structure.partitions -%}
+ALTER TABLE {{ full_table_name }} WRITE DISTRIBUTED BY PARTITION LOCALLY ORDERED BY src_modified_stamp ASC NULLS LAST;
+{% else -%}
+ALTER TABLE {{ full_table_name }} WRITE ORDERED BY {{ sort_order_expressions.values | join(', ') }};
+{% endif -%}

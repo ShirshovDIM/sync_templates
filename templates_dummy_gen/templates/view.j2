@@ -1,0 +1,68 @@
+{%- if structure.metastructure_code in ['mcRDO.msChangeDataView', 'mcRDO.msReplicaDataView'] and 'eq' in metaobject.application_code %}
+{%- set attrs = (structure.attributes or []) | list %}
+{%- set sorted_attrs = attrs | sort(attribute='orderno_ncode') -%}
+
+{# Найдём все имена, которые будут "заменены" через dSourceMaskedColumn #}
+{%- set masked_replacements = [] %}
+{%- for attr in sorted_attrs -%}
+    {%- if attr.domain_code == 'dSourceMaskedColumn' %}
+        {%- do masked_replacements.append(attr.attribute_name | string) %}
+    {%- endif -%}
+{%- endfor -%}
+
+{#- Фильтруем атрибуты для SELECT: убираем те, чей attribute_pname совпадает с attribute_name из dSourceMaskedColumn #}
+{%- set select_attrs = [] %}
+{%- for attr in sorted_attrs -%}
+    {%- set should_include = true %}
+    {%- if attr.domain_code != 'dSourceMaskedColumn' %}
+        {%- if attr.attribute_pname in masked_replacements %}
+            {%- set should_include = false %}
+        {%- endif -%}
+    {%- endif -%}
+    {%- if should_include -%}
+        {%- do select_attrs.append(attr) %}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- set view_schema = structure.objectarea_pname ~ '__public' -%}
+{%- set view_name = structure.structure_pname %}
+{%- set source_schema = structure.objectarea_pname -%}
+
+{%- if structure.metastructure_code == 'mcRDO.msChangeDataView' %}
+    {%- set source_table = structure.structure_pname.split('__')[0] ~ '__cdc' -%}
+{%- endif %}
+{%- if structure.metastructure_code == 'mcRDO.msReplicaDataView' %}
+    {%- set source_table = structure.structure_pname.split('__')[0]  -%}
+{%- endif %}
+
+CREATE OR REPLACE VIEW {{ view_schema }}.{{ view_name }}
+(
+{%- for attr in sorted_attrs %}
+    {%- set col_name = attr.attribute_name %}
+    {%- set col_comment = attr.attribute_desc or '' %}
+
+    {%- if attr.domain_code == 'dSourceMaskedColumn' -%}
+        {%- set comment = col_comment ~ '. Маскирование'-%}
+    {%- elif attr.domain_code == 'dSourceHashedColumn' -%}
+        {%- set comment = col_comment ~ '. Хеширование'-%}
+        {%- set col_name = attr.attribute_pname -%}
+    {%- elif attr.domain_code.startswith('dMeta') -%}
+        {%- set comment = col_comment -%}
+        {%- set col_name = attr.attribute_pname -%}
+    {%- else -%}
+        {%- set comment = col_comment -%}
+    {%- endif %}
+    {{ col_name }} COMMENT '{{ comment | replace("'", "''") }}'{{ ',' if not loop.last }}
+{%- endfor %}
+)
+COMMENT '{{ ("Представление, отображающее таблицу реплики данных источника " ~ source_schema ~ '.' ~ source_table) | replace("'", "''") }}'
+AS SELECT
+{%- for attr in select_attrs %}
+    {%- if attr.domain_code == 'dSourceMaskedColumn' %}
+        {{ attr.attribute_pname }} AS {{ attr.attribute_name }}
+    {%- else %}
+        {{ attr.attribute_pname }}
+    {%- endif %}{{ ',' if not loop.last }}
+{%- endfor %}
+FROM {{structure.objectarea_pname}}.{{ source_table }};
+{%- endif %}

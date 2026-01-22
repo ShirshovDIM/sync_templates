@@ -1,0 +1,301 @@
+{%- if structure.metastructure_code in ['mcRDO.msSourceDefinition'] -%}
+
+{%- set source_columns = [] -%}
+{%- set deleted_flag = none -%}
+{%- set increment_flag = none -%}
+
+{# --- Сбор атрибутов и флагов --- #}
+{%- for attr in structure.attributes %}
+  {%- if attr.propvalues_json.deleted_flag == "true" %}
+    {%- set deleted_flag = attr.attribute_pname -%}
+  {%- endif %}
+  {%- if attr.propvalues_json.increment_flag == "true" %}
+    {%- set increment_flag = attr.attribute_pname -%}
+  {%- endif %}
+  {%- do source_columns.append(attr.attribute_pname) -%}
+{%- endfor %}
+
+{# --- Проверка обязательных полей --- #}
+{%- if not deleted_flag %}
+  {%- set deleted_flag = "NULL" %}
+{%- endif %}
+{%- if not increment_flag %}
+  {%- set increment_flag = "NULL" %}
+{%- endif %}
+
+{# --- Параметры workflow --- #}
+{%- set batch = false -%}
+{%- set folder_name = "AIRFLOW" -%}
+{%- set server_name = "AF_EIS" -%}
+{%- set workflow_name = none -%}
+{%- set workflow_desc = none -%}
+
+{%- for flow in metaobject.flows %}
+  {%- if flow.metaflow_code == "mfBatchFlow" %}
+    {%- set batch = true -%}
+    {%- set workflow_name = flow.flow_pname -%}
+    {%- set workflow_desc = flow.flow_desc -%}
+  {%- endif %}
+{%- endfor %}
+
+{# --- Извлечение времени регистрации --- #}
+{%- set reg_time = (metaobject.propvalues_json.reg_time or "00:00") -%}
+{%- set splitted_time = reg_time.split(":") %}
+{%- set hour = splitted_time[0] | default("00", true) %}
+{%- set minute = (splitted_time[1] if splitted_time | length > 1 else "00") %}
+
+{# --- Формирование имени таблицы --- #}
+{%- set table_name_parts = (structure.structure_pname or "").split("_") %}
+{%- set table_prefix = table_name_parts[0] if table_name_parts | length > 1 else "" %}
+
+{# --- Формирование списка колонок с метаданными --- #}
+{%- set columns_info = [] -%}
+{%- set attrs = (structure.attributes or []) | sort(attribute='orderno_ncode') %}
+
+{%- for attr in attrs %}
+  {%- set prop = attr.propvalues_json or {} %}
+  {%- set rule_code = prop.infopolicy_code if prop.infopolicy_code and prop.infopolicy_code not in ['null', ''] else none %}
+  {%- set mask_flag = (prop.mask_flag == "true") %}
+  {%- set hash_flag = (prop.hash_flag == "true") %}
+  {%- set is_key = (attr.domain_code == "dSourceKeyColumn") %}
+  {%- set column_type = "K" if is_key else "C" %}
+
+  {# Основная колонка #}
+  {%- set col_obj = {
+    "COLUMN_NAME": attr.attribute_pname,
+    "COLUMNTYPE_CODE": column_type
+  } %}
+  {%- if rule_code %}{%- do col_obj.update({"RULE_CODE": rule_code}) %}{%- endif %}
+  {%- if (mask_flag and hash_flag and is_key) %}
+    {%- do col_obj.update({"PROTECTION_TYPE": "mh"}) %}
+  {%- elif hash_flag and is_key %}
+    {%- do col_obj.update({"PROTECTION_TYPE": "h"}) %}
+  {%- elif mask_flag %}
+    {%- do col_obj.update({"PROTECTION_TYPE": "m"}) %}
+  {%- endif %}
+  {%- do columns_info.append(col_obj) %}
+
+  {# Дополнительные защищённые колонки #}
+  {%- if mask_flag %}
+    {%- set mask_col = {
+      "COLUMN_NAME": attr.attribute_pname ~ "_mask",
+      "COLUMNTYPE_CODE": "N",
+      "PROTECTION_TYPE": "p"
+    } %}
+    {%- if rule_code %}{%- do mask_col.update({"RULE_CODE": rule_code}) %}{%- endif %}
+    {%- do columns_info.append(mask_col) %}
+  {%- endif %}
+
+  {%- if hash_flag and is_key %}
+    {%- set hash_col = {
+      "COLUMN_NAME": attr.attribute_pname ~ "_hash",
+      "COLUMNTYPE_CODE": "N",
+      "PROTECTION_TYPE": "p"
+    } %}
+    {%- if rule_code %}{%- do hash_col.update({"RULE_CODE": rule_code}) %}{%- endif %}
+    {%- do columns_info.append(hash_col) %}
+  {%- endif %}
+{%- endfor %}
+
+{# --- JSON для single- и batch-режимов --- #}
+{%- set common_json_parts -%}
+    "TABLE_OWNER": "{{ structure.objectarea_pname }}",
+    "TABLE_NAME": "{{ table_prefix }}",
+    "TABLE_COLUMNS": {{ columns_info | tojson }},
+    "PATCH_CODE": "{{ patch_id | lower }}"
+{%- endset %}
+
+{%- set sjson -%}
+'{
+  {{ common_json_parts }}
+}',
+p_tag_name => '{{ table_prefix }}_{{ patch_id | lower }}',
+p_patch_code => '{{ patch_id | lower }}';
+{%- endset %}
+
+{%- set bjson -%}
+p_json => '{
+  "FOLDER_NAME": "{{ folder_name }}",
+  "WORKFLOW_NAME": "{{ workflow_name }}",
+  "SERVER_NAME": "{{ server_name }}",
+  {{ common_json_parts }},
+  "REG_NAME": "REGL_CIDS_{{ metaobject.application_code | upper }}_DAILY_{{ hour }}H{{ minute }}",
+  "REG_DESC": "Регламент потока для загрузки данных системы {{ metaobject.application_code | upper }}",
+  "WORKFLOW2REG_DESC": "Поток работает ежедневно",
+  "SCHEDULE_NAME": "DAILY_{{ reg_time }}",
+  "SCHEDULE_DESC": "Каждый день в {{ reg_time }}",
+  "RUN_MODE": "DAILY",
+  "RUN_WINDOW_EXPRESSION": "SELECT CASE WHEN SYSDATE > TO_DATE(TO_CHAR(SYSDATE, ''DDMMYYYY'') || ''{{ reg_time }}'', ''DDMMYYYY HH24:MI'') THEN ''START'' ELSE '''' END FROM DUAL",
+  "WORKFLOW_DESC": "Поток для загрузки таблицы {{ structure.objectarea_pname }}.{{ structure.structure_pname }}",
+  "WORKFLOW2REG_DESC": "Поток для загрузки таблицы {{ structure.objectarea_pname }}.{{ structure.structure_pname }}",
+  "PARAMS": [
+    {
+      "PARAM_NAME": "p_cids_airflow_conn_name",
+      "PARAMVALUETYPE_CODE": "STATIC",
+      "PARAM_VALUE": "{{ structure.objectarea_pname }}"
+    },
+    {
+      "PARAM_NAME": "p_cids_workflow_mode",
+      "PARAMVALUETYPE_CODE": "STATIC",
+      "PARAM_VALUE": "regular"
+    },
+    {
+      "PARAM_NAME": "p_cids_upload_mode",
+      "PARAMVALUETYPE_CODE": "STATIC",
+      "PARAM_VALUE": "replace"
+    },
+    {
+      "PARAM_NAME": "p_cids_start_dttm",
+      "PARAMVALUETYPE_CODE": "DYNAMIC",
+      "PARAM_VALUE": "DNMPARAM_CIDS.P_CIDS_START_DTTM"
+    },
+    {
+      "PARAM_NAME": "p_cids_start_date",
+      "PARAMVALUETYPE_CODE": "DYNAMIC",
+      "PARAM_VALUE": "DNMPARAM_CIDS.P_CIDS_START_DATE"
+    },
+    {
+      "PARAM_NAME": "p_cids_end_dttm",
+      "PARAMVALUETYPE_CODE": "DYNAMIC",
+      "PARAM_VALUE": "DNMPARAM_CIDS.P_CIDS_END_DTTM"
+    },
+    {
+      "PARAM_NAME": "p_cids_end_date",
+      "PARAMVALUETYPE_CODE": "DYNAMIC",
+      "PARAM_VALUE": "DNMPARAM_CIDS.P_CIDS_END_DATE"
+    },
+    {
+      "PARAM_NAME": "p_spark_config",
+      "PARAMVALUETYPE_CODE": "STATIC",
+      "PARAM_VALUE": {
+        "task_ingest": {
+          "spark.dynamicAllocation.enabled": "false",
+          "spark.executor.instances": "1",
+          "spark.executor.cores": "2",
+          "spark.executor.memory": "10G"
+        },
+        "task_merge_upload": {
+          "spark.dynamicAllocation.enabled": "true",
+          "spark.dynamicAllocation.shuffleTracking.enabled": "true",
+          "spark.dynamicAllocation.initialExecutors": "1",
+          "spark.dynamicAllocation.minExecutors": "1",
+          "spark.dynamicAllocation.maxExecutors": "10",
+          "spark.executor.cores": "10",
+          "spark.executor.memory": "50G"
+        },
+        "task_replace_upload": {
+          "spark.dynamicAllocation.enabled": "true",
+          "spark.dynamicAllocation.shuffleTracking.enabled": "true",
+          "spark.dynamicAllocation.initialExecutors": "1",
+          "spark.dynamicAllocation.minExecutors": "1",
+          "spark.dynamicAllocation.maxExecutors": "10",
+          "spark.executor.cores": "10",
+          "spark.executor.memory": "50G"
+        },
+        "task_replace_by_section_upload": {
+          "spark.dynamicAllocation.enabled": "true",
+          "spark.dynamicAllocation.shuffleTracking.enabled": "true",
+          "spark.dynamicAllocation.initialExecutors": "1",
+          "spark.dynamicAllocation.minExecutors": "1",
+          "spark.dynamicAllocation.maxExecutors": "10",
+          "spark.executor.cores": "10",
+          "spark.executor.memory": "50G"
+        }
+      } | tojson | replace('"', '\\"')
+    }
+  ],
+  "ACTIVE_FLAG": "Y",
+  "USRPARAMS": [
+    {
+      "PARAM_NAME": "p_cids_workflow_mode",
+      "PARAM_VALUE": "initial"
+    },
+    {
+      "PARAM_NAME": "p_cids_upload_mode",
+      "PARAM_VALUE": "replace"
+    }
+  ],
+  "PATCH_CODE": "{{ patch_id | upper }}"
+}',
+p_tag_name => 'workflow',
+p_patch_code => '{{ patch_id }}';
+{%- endset %}
+
+{# --- Генерация SQL-запросов для задач --- #}
+{%- set select_list = source_columns | join(", ") %}
+{%- set source_table = "data." ~ structure.attribute_pname %}
+
+{%- set flowtask -%}
+{%- if batch %}
+    a := UTL_MD_UPSERT.upsert_FLOWTASKS(
+        p_folder_name => '{{ folder_name }}',
+        p_workflow_name => '{{ workflow_name }}',
+        p_task_name => 'cids_regular_query',
+        p_sql_text => q'~SELECT {{ select_list }}, {{ deleted_flag }} AS deleted_flag, {{ increment_flag }} AS src_modified_stamp FROM {{ source_table }} WHERE 1=1~',
+        p_patch_code => '{{ patch_id }}'
+    );
+
+    a := UTL_MD_UPSERT.upsert_FLOWTASKS(
+        p_folder_name => '{{ folder_name }}',
+        p_workflow_name => '{{ workflow_name }}',
+        p_task_name => 'cids_initial_query',
+        p_sql_text => q'~SELECT {{ select_list }}, {{ deleted_flag }} AS deleted_flag, TO_TIMESTAMP(''1970-01-01 00:00:00'', ''YYYY-MM-DD HH24:MI:SS'') AS src_modified_stamp FROM {{ source_table }}~',
+        p_patch_code => '{{ patch_id }}'
+    );
+
+    a := UTL_MD_UPSERT.upsert_FLOWTASKS(
+        p_folder_name => '{{ folder_name }}',
+        p_workflow_name => '{{ workflow_name }}',
+        p_task_name => 'cids_reloading_query',
+        p_sql_text => q'~SELECT {{ select_list }}, {{ deleted_flag }} AS deleted_flag, TO_TIMESTAMP(''1970-01-01 00:00:00'', ''YYYY-MM-DD HH24:MI:SS'') AS src_modified_stamp FROM {{ source_table }}~',
+        p_patch_code => '{{ patch_id }}'
+    );
+{%- endif %}
+{%- endset %}
+
+{# --- Выбор JSON в зависимости от режима --- #}
+{%- set json = bjson if batch else sjson %}
+
+{{%- set columns_info -%}
+{%- set attrs = (structure.attributes or []) | list %}
+{%- set sorted_attrs = attrs | sort(attribute='orderno_ncode') %}
+[
+{%- for attr in sorted_attrs %}
+    {%- set prop = attr.propvalues_json or {} %}
+    {%- set rule_code = prop.infopolicy_code if prop.infopolicy_code is not none and prop.infopolicy_code != '' and prop.infopolicy_code != 'null' else none %}
+    {%- set mask_flag = prop.mask_flag == "true" %}
+    {%- set hash_flag = prop.hash_flag == "true" %}
+    {%- set is_key = attr.domain_code == "dSourceKeyColumn" %}
+    {%- set column_type = "K" if is_key else "C" %}
+    
+    {"COLUMN_NAME": "{{ attr.attribute_pname }}", "COLUMNTYPE_CODE": "{{ column_type }}"
+        {%- if rule_code is not none -%}
+            , "RULE_CODE": "{{ rule_code }}"
+        {%- endif -%}
+        {%- if mask_flag and hash_flag and is_key -%}
+            , "PROTECTION_TYPE": "mh"
+        {%- elif hash_flag and is_key -%}
+            , "PROTECTION_TYPE": "h"
+        {%- elif mask_flag -%}
+            , "PROTECTION_TYPE": "m"
+        {%- endif -%}
+    }{%- if not loop.last or mask_flag or (hash_flag and is_key) %},{%- endif %}
+    
+    {%- if mask_flag %}
+    {"COLUMN_NAME": "{{ attr.attribute_pname }}_mask", "COLUMNTYPE_CODE": "N"
+        {%- if rule_code is not none -%}
+            , "RULE_CODE": "{{ rule_code }}"
+        {%- endif -%}
+        , "PROTECTION_TYPE": "p"}{% if not loop.last or (hash_flag and is_key) %},{%- endif %}
+    {%- endif %}
+    
+    {%- if hash_flag and is_key %}
+    {"COLUMN_NAME": "{{ attr.attribute_pname }}_hash", "COLUMNTYPE_CODE": "N"
+        {%- if rule_code is not none -%}
+            , "RULE_CODE": "{{ rule_code }}"
+        {%- endif -%}
+        , "PROTECTION_TYPE": "p"}{%- if not loop.last %},{%- endif %}
+    {%- endif %}
+{%- endfor %}
+]
+{%- endset -%}

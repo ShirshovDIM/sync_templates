@@ -1,0 +1,935 @@
+{#{%- if "mfJMONStreamingFlow" in flow.metaflow_code and "eq" not in metaobject.application_code -%}#}
+
+{%- set target_domains = ["dSourceKeyColumn", "dSourceColumn", "dSourceMaskedColumn", "dSourceHashedColumn"] -%}
+
+{%- set diagram_id = flow.propvalues_json.flow_uuid -%}
+
+{%- set schemas = namespace(source_uuid=none, mask_uuid=none) -%}
+
+{%- set consume = namespace(flowtask_uuid=none, task=none) -%}
+{%- set consume_sensitive = namespace(flowtask_uuid=none, task=none) -%}
+{%- set union = namespace(flowtask_uuid=none, task=none) -%}
+{%- set protect = namespace(flowtask_uuid=None, task=none, source_attributes=[], target_attributes=[], script_lines=[], processed=[]) -%}
+
+{%- set protection_filter = namespace(flowtask_uuid=none) -%}
+{%- set delete_filter = namespace(flowtask_uuid=none) -%}
+{%- set modify_filter = namespace(flowtask_uuid=none) -%}
+
+{%- set enrich_cdc = namespace(flowtask_uuid=none, task=none) -%}
+{%- set enrich_rdd = namespace(flowtask_uuid=none, task=none) -%}
+{%- set enrich_rdo = namespace(flowtask_uuid=none, task=none) -%}
+
+{%- set load_cdc = namespace(flowtask_uuid=none, task=none, objectarea_pname=none, structure_pname=none) -%}
+{%- set load_rdd = namespace(flowtask_uuid=none, task=none, objectarea_pname=none, structure_pname=none) -%}
+{%- set load_rdo = namespace(flowtask_uuid=none, task=none, objectarea_pname=none, structure_pname=none) -%}
+
+{%- for task in flow.flowtasks %}
+    {%- if task.metaflowtask_code == "mcRDO.mfJMONStreamingFlow.mmConsumeData" -%}
+        {%- set consume.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set consume.task = task %}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONStreamingFlow.mmConsumeSensitiveFlag" -%}
+        {%- set consume_sensitive.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set consume_sensitive.task = task %}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONStreamingFlow.mmUnionSensitiveFlagData" -%}
+        {%- set union.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set union.task = task %}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONStreamingFlow.mmHideSensitiveData" -%}
+        {%- set protect.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set protect.task = task -%}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONStreamingFlow.mmCheckSensitiveRules" -%}
+        {%- set protection_filter.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+    {%- elif task.metaflow_code == "mcRDO.mfStandardStreamingFlow.mmCheckChanges.deleted" -%}
+        {%- set delete_filter.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+    {%- elif task.metaflow_code == "mcRDO.mfStandardStreamingFlow.mmCheckChanges.modified" -%}
+        {%- set modify_filter.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONStreamingFlow.mmEnrichTechCols.cdc" -%}
+        {%- set enrich_cdc.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set enrich_cdc.task = task -%}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONStreamingFlow.mmEnrichTechCols.rdo" -%}
+        {%- set enrich_rdo.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set enrich_rdo.task = task -%}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONStreamingFlow.mmEnrichTechCols.rdd" -%}
+        {%- set enrich_rdd.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set enrich_rdd.task = task -%}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONStreamingFlow.mmLoadTargetData.rdo" -%}
+        {%- set load_rdo.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set load_rdo.task = task -%}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONStreamingFlow.mmLoadTargetData.cdc" -%}
+        {%- set load_cdc.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set load_cdc.task = task -%}
+    {%- elif task.metaflowtask_code == "mcRDO.mfJMONStreamingFlow.mmLoadTargetData.rdd" -%}
+        {%- set load_rdd.flowtask_uuid = task.propvalues_json.flowtask_uuid -%}
+        {%- set load_rdd.task = task -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- for structure in metaobject.structures -%}
+    {%- if structure.metastructure_code == "mcRDO.msSourceDefinition" -%}
+        {%- set schemas.source_uuid = structure.propvalues_json.structure_uuid -%}
+    {%- elif structure.metastructure_code == "mcRDO.msChangeDataCapture"-%}
+        {%- set load_cdc.objectarea_pname = structure.objectarea_pname -%}
+        {%- set load_cdc.structure_pname = structure.structure_pname -%}
+    {%- elif structure.metastructure_code == "mcRDO.msReplicaDeletedData" -%}
+        {%- set load_rdd.objectarea_pname = structure.objectarea_pname -%}
+        {%- set load_rdd.structure_pname = structure.structure_pname -%}
+    {%- elif structure.metastructure_code == "mcRDO.msReplicaDataObject" -%}
+        {%- set schemas.mask_uuid = structure.propvalues_json.structure_uuid -%}
+        {%- set load_rdo.objectarea_pname = structure.objectarea_pname -%}
+        {%- set load_rdo.structure_pname = structure.structure_pname -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- for structure in protect.task.flowtask_structures -%}
+    {%- for attr in structure.structure.attributes -%}
+        {%- if (attr.domain_code in target_domains) and (attr.attribute_pname not in protect.target_attributes) -%}
+            {%- set _ = protect.target_attributes.append(attr.attribute_pname) -%}
+        {%- endif -%}
+    {%- endfor -%}
+{%- endfor -%}
+
+
+{%- set output_structure = namespace(struct=none) -%}
+{%- for struct in protect.task.flowtask_structures -%}
+  {%- if output_structure.struct is none and struct.get('directiontype_code') == 'output' -%}
+    {%- set output_structure.struct = struct -%}
+  {%- endif -%}
+{%- endfor -%}
+
+{%- if output_structure.struct is none -%}
+  {%- for struct in protect.task.flowtask_structures -%}
+    {%- if output_structure.struct is none and struct.get('metaobject') -%}
+      {%- set output_structure.struct = struct -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+{%- if output_structure.struct is not none -%}
+  {%- set attributes = output_structure.struct.structure.attributes -%}
+{%- for attr in attributes -%}
+  {%- if attr_pname not in protect.processed -%}
+    {%- set attr_name = attr.attribute_name -%}
+    {%- set attr_pname = attr.attribute_pname -%}
+    {%- set attr_domain = attr.domain_code -%}
+    {%- set tool_type = attr.tooldatatype_code -%}
+    {%- set base_type = attr.basedatatype_code -%}
+    {%- set src_upper = attr_name | upper -%}
+    {%- set _ = protect.processed.append(attr_pname) -%}
+
+    {%- if not attr_domain.startswith('dMeta') -%}
+
+      {%- if attr_domain in source_domains -%}
+        {%- if tool_type == 'timestamp' or 'bdtTimestamp' in base_type -%}
+            {%- set line = attr_name ~ ' = LocalDateTime.parse(' ~ src_upper ~ ', DateTimeFormatter.ofPattern(\\"yyyy-MM-dd HH:mm:ss.SSSSSS\\"))' -%}
+        {%- elif tool_type == "int" -%}
+            {%- set line = attr_name ~ ' = (data.op == "d") ? null : data.after.' ~ attr_name ~ '.toInteger()'-%}
+        {%- elif tool_type == "boolean" -%}
+            {%- set line = attr_name ~ ' = (data.op == "d") ? null : data.after.' ~ attr_name ~ ' as Boolean'-%}
+        {%- else -%}
+            {%- set line = attr_name  ~ ' = (data.op) == "d" ? null : data.after.' ~ src_upper -%}
+        {%- endif -%}
+        {%- set _ = protect.script_lines.append(line) -%}
+      {%- elif attr_domain == 'dSourceMaskedColumn' -%}
+        {%- set line = attr_name ~ '_mask = (data.op) == "d" ? null : protector.maskData("' ~ attr_name ~ '", ' ~ src_upper ~ ')' -%}
+        {%- set _ = protect.script_lines.append(line) -%}
+      {%- elif attr_domain == 'dSourceHashedColumn' -%}
+        {%- set line = attr_name ~ '_hash = (data.op == "d") ? null : protector.maskData("' ~ attr_name ~ '", ' ~ src_upper ~ '.trim())' -%}
+        {%- set _ = protect.script_lines.append(line) -%}
+      {%- endif -%}
+
+      {%- if attr_domain in source_domains and not (attr_name.endswith('_mask') or attr_name.endswith('_hash')) -%}
+        {%- if attr_name not in protect.source_attributes -%}
+          {%- set _ = protect.source_attributes.append(attr_name) -%}
+        {%- endif -%}
+      {%- endif -%}
+
+      {%- if attr_domain in target_domains -%}
+        {%- if attr_name not in protect.target_attributes -%}
+          {%- set _ = protect.target_attributes.append(attr_name) -%}
+        {%- endif -%}
+      {%- endif -%}
+
+    {%- endif -%}
+  {%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+
+{%- set protection_script = protect.script_lines | join('\\n') -%}
+
+{%- set sensitive_consume_union = namespace(flowtransition_uuid=none) -%}
+{%- set consume_union = namespace(flowtransition_uuid=none) -%}
+
+{%- set union_protect = namespace(flowtransition_uuid=none) -%}
+
+{%- set protect_protection_filter = namespace(flowtransition_uuid=none) -%}
+
+{%- set protection_filter_enrich_rdo = namespace(flowtransition_uuid=none) -%}
+{%- set protection_filter_enrich_cdc = namespace(flowtransition_uuid=none) -%}
+
+{%- set enrich_cdc_load_cdc = namespace(flowtransition_uuid=none) -%}
+
+{%- set enrich_rdo_delete_filter = namespace(flowtransition_uuid=none) -%}
+{%- set enrich_rdo_modify_filter = namespace(flowtransition_uuid=none) -%}
+
+{%- set delete_filter_load_rdd = namespace(flowtransition_uuid=none) -%}
+{%- set modify_filter_load_rdo = namespace(flowtransition_uuid=none) -%}
+
+
+{%- for transition in flow.flowtransitions -%}
+    {%- if transition.flowtask_from_code.endswith(".consume_sensitive_flag") and transition.flowtask_to_code.endswith(".union_sensitivecheck") -%}
+        {%- set sensitive_consume_union.flowtransition_uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- elif transition.flowtask_from_code.endswith(".consume_data") and transition.flowtask_to_code.endswith(".union_sensitivecheck") -%}
+        {%- set consume_union.flowtransition_uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- elif transition.flowtask_from_code.endswith(".union_sensitivecheck") and transition.flowtask_to_code.endswith(".protect_data") -%}
+        {%- set union_protect.flowtransition_uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- elif transition.flowtask_from_code.endswith(".protect_data") and transition.flowtask_to_code.endswith(".check_sensitiverule") -%}
+        {%- set protect_protection_filter.flowtransition_uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- elif transition.flowtask_from_code.endswith(".check_sensitiverule") and transition.flowtask_to_code.endswith(".enrich_techcols_cdc") -%}
+        {%- set protection_filter_enrich_cdc.flowtransition_uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- elif transition.flowtask_from_code.endswith(".check_sensitiverule") and transition.flowtask_to_code.endswith(".enrich_techcols_rdo") -%}
+        {%- set protection_filter_enrich_rdo.flowtransition_uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- elif transition.flowtask_from_code.endswith(".enrich_techcols_cdc") and transition.flowtask_to_code.endswith(".load_target_cdc") -%}
+        {%- set enrich_cdc_load_cdc.flowtransition_uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- elif transition.flowtask_from_code.endswith(".enrich_techcols_rdo") and transition.flowtask_to_code.endswith(".check_changes_deleted") -%}
+        {%- set enrich_rdo_delete_filter.flowtransition_uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- elif transition.flowtask_from_code.endswith(".enrich_techcols_rdo") and transition.flowtask_to_code.endswith(".check_changes_modified") -%}
+        {%- set enrich_rdo_modify_filter.flowtransition_uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- elif transition.flowtask_from_code.endswith(".check_changes_deleted") and transition.flowtask_to_code.endswith(".load_target_rdd") -%}
+        {%- set delete_filter_load_rdd.flowtransition_uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- elif transition.flowtask_from_code.endswith(".check_changes_modified") and transition.flowtask_to_code.endswith(".load_target_rdo") -%}
+        {%- set delete_filter_load_rdo.flowtransition_uuid = transition.propvalues_json.flowtransition_uuid -%}
+    {%- endif -%}
+{%- endfor -%}
+
+{
+    "diagrams": {
+        "{{ diagram_id }}": {
+            "diagramWithParameters": {
+                "lifeCycleState": "ACTIVE",
+                "versionId": "{{ diagram_id }}",
+                "versionName": "latest",
+                "versionType": "LATEST",
+                "diagramId": "{{ diagram_id }}",
+                "diagramNameEntity": {
+                    "id": "0aeb9103-96e9-1dde-8196-f6e21c9615ea",
+                    "objectId": "{{ diagram_id }}",
+                    "objectName": "sf__kafka_bdp2bdp__{{ metaobject.application_code | lower }}__{{ metaobject.entitytype_pname | lower }}"
+                },
+                "createDt": "{{ current_date }}",
+                "changeDt": "{{ current_date }}",
+                "lastChangeByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+                "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+                "blockFlag": false,
+                "errorResponseFlag": false,
+                "treatTerminalStateAsInitial": false,
+                "diagramDescription": "Template Kafka2Iceberg",
+                "metaInfo": {
+                    "nodeCounter": 10
+                },
+                "saveDiagramMessage": false,
+                "diagramType": "DEFAULT",
+                "notificationEmails": [],
+                "inOutParameters": [
+                    {
+                        "parameterVersionId": "47f44b68-3ff6-433c-a4e9-a16f3a9d0af8",
+                        "parameterId": "e918e0b7-f072-47c5-beb0-36d3327e12ef",
+                        "parameterName": "diagram_execute_status",
+                        "diagramVersion": {
+                            "versionId": "{{ diagram_id }}"
+                        },
+                        "diagramVersionId": "{{ diagram_id }}",
+                        "primitiveTypeId": "2",
+                        "primitiveType": {
+                            "typeId": "2"
+                        },
+                        "arrayFlag": false,
+                        "parameterType": "OUT",
+                        "sourceType": "OUTER",
+                        "scopeType": "DEFAULT",
+                        "defaultValue": "'0'",
+                        "metaInfo": {
+                            "orderNum": 0,
+                            "isExecuteStatus": true
+                        },
+                        "typeId": "2"
+                    }
+                ]
+            },
+            "nodes": [
+                {
+                    "nodeVersionId": "{{ protection_filter.flowtask_uuid }}",
+                    "nodeId": "{{ protection_filter.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 105,
+                    "nodeName": "{{ metaobject.entitytype_pname }}_filter",
+                    "nodeDescription": "Data filter to maintain change flags",
+                    "jsonProperty": {
+                        "nodeType": "105",
+                        "filter": "flag_key IS NULL",
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": -554994373,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1353.9140646321432,
+                            "y": 598.0141537903787
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Фильтр"
+                },
+                {
+                    "nodeVersionId": "{{ consume_sensitive.flowtask_uuid }}",
+                    "nodeId": "{{ consume_sensitive.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 102,
+                    "nodeName": "{{ metaobject.entitytype_pname | lower}}_sensitive_flags",
+                    "jsonProperty": {
+                        "nodeType": "102",
+                        "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+                        "boundedness": "CONTINUOUS_UNBOUNDED",
+                        "serde": {
+                            "value": {
+                                "format": "string",
+                                "single_field_name": "flag_value"
+                            },
+                            "key": {
+                                "name": "flag_key",
+                                "enabled": true,
+                                "format": "string"
+                            },
+                            "headers": {
+                                "enabled": false
+                            },
+                            "partition": {
+                                "enabled": false
+                            },
+                            "offset": {
+                                "enabled": false
+                            },
+                            "timestamp": {
+                                "enabled": false
+                            }
+                        },
+                        "kafka": {
+                            "consumer": {
+                                "group_id": "{{ metaobject.application_code }}_cids_{{ metaobject.entitytype_pname }}_consumer",
+                                "start_offsets": {
+                                    "committed": {
+                                        "reset_strategy": "earliest"
+                                    },
+                                    "type": "committed"
+                                },
+                                "topic": "tracking_sensitive_flags",
+                                "properties": []
+                            }
+                        },
+                        "execution_options": {
+                            "logging": true
+                        }
+                    },
+                    "jsonPropertyHashCode": -1231189179,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 202.31950791077293,
+                            "y": 112.31950791077293
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Источник - Kafka"
+                },
+                {
+                    "nodeVersionId": "{{ load_cdc.flowtask_uuid }}",
+                    "nodeId": "{{ load_cdc.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 121,
+                    "nodeName": "{{ metaobject.entitytype_pname }}_cdc",
+                    "jsonProperty": {
+                        "nodeType": "121",
+                        "data_provider_uuid": "0aeb93cc-95b8-1d5b-8195-cc7c38e50d50",
+                        "table_name": "{{ load_cdc.objectarea_pname }}.{{ load_cdc.structure_pname }}",
+                        "field_mappings": [],
+                        "additional_properties": [
+                            {
+                                "name": "target-file-size-bytes",
+                                "value": "268435456",
+                                "row_key": "0c2dac38-1d91-47bc-8db7-1d1362ed54e7"
+                            },
+                            {
+                                "name": "upsert-enabled",
+                                "value": "false",
+                                "row_key": "a1e1c04e-e8df-4460-8045-b8ca54c3c437"
+                            }
+                        ]
+                    },
+                    "jsonPropertyHashCode": -1428734145,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2011.489767360868,
+                            "y": 1003.520514680931
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Приемник - Iceberg"
+                },
+                {
+                    "nodeVersionId": "{{ load_rdd.flowtask_uuid }}",
+                    "nodeId": "{{ load_rdd.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 121,
+                    "nodeName": "{{ metaobject.entitytype_pname }}_rdd",
+                    "jsonProperty": {
+                        "nodeType": "121",
+                        "data_provider_uuid": "0aeb93cc-95b8-1d5b-8195-cc7c38e50d50",
+                        "table_name": "{{ load_rdd.objectarea_pname }}.{{ load_rdd.structure_pname }}",
+                        "field_mappings": [],
+                        "additional_properties": [
+                            {
+                                "name": "upsert-enabled",
+                                "value": "false",
+                                "row_key": "dd4043e0-4a30-4070-9af3-7d82d81000c8"
+                            },
+                            {
+                                "name": "target-file-size-bytes",
+                                "value": "268435456",
+                                "row_key": "9660d936-bb23-4a15-afe4-d7d18a42bb21"
+                            }
+                        ]
+                    },
+                    "jsonPropertyHashCode": -1560495241,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 3152.6038657103436,
+                            "y": 374.2425054003184
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Приемник - Iceberg"
+                },
+                {
+                    "nodeVersionId": "{{ delete_filter.flowtask_uuid }}",
+                    "nodeId": "{{ delete_filter.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 105,
+                    "nodeName": "{{ metaobject.entitytype_pname }}_filter_delete",
+                    "nodeDescription": "Filtering data - deleted rows",
+                    "jsonProperty": {
+                        "nodeType": "105",
+                        "filter": "deleted_flag = true",
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": -217791251,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2601.6765303008797,
+                            "y": 374.49299009065504
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Фильтр"
+                },
+                {
+                    "nodeVersionId": "{{ union.flowtask_uuid }}",
+                    "nodeId": "{{ union.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 130,
+                    "nodeName": "{{ metaobject.entitytype_pname | lower }}_union",
+                    "nodeDescription": "union",
+                    "jsonProperty": {
+                        "nodeType": "130",
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "complete_schemes_equality": false
+                    },
+                    "jsonPropertyHashCode": 79688,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 801.0307294267319,
+                            "y": 260.18616552107704
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Объединение"
+                },
+                {
+                    "nodeVersionId": "{{ modify_filter.flowtask_uuid }}",
+                    "nodeId": "{{ modify_filter.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 105,
+                    "nodeName": "{{ metaobject.entitytype_pname | lower }}_filter_modified",
+                    "nodeDescription": "Filtering data - modified rows",
+                    "jsonProperty": {
+                        "nodeType": "105",
+                        "filter": "deleted_flag = false",
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": 1042827726,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2605.6765303008797,
+                            "y": 603.9950544256134
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Фильтр"
+                },
+                {
+                    "nodeVersionId": "{{ load_rdo.flowtask_uuid }}",
+                    "nodeId": "{{ load_rdo.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 121,
+                    "nodeName": "{{ metaobject.entitytype_pname | lower }}_rdo",
+                    "jsonProperty": {
+                        "nodeType": "121",
+                        "data_provider_uuid": "0aeb93cc-95b8-1d5b-8195-cc7c38e50d50",
+                        "table_name": "{{ load_rdo.objectarea_pname | lower }}.{{ load_rdo.structure_pname | lower }}",
+                        "field_mappings": [],
+                        "additional_properties": [
+                            {
+                                "name": "upsert-enabled",
+                                "value": "true",
+                                "row_key": "dd4043e0-4a30-4070-9af3-7d82d81000c8"
+                            },
+                            {
+                                "name": "target-file-size-bytes",
+                                "value": "268435456",
+                                "row_key": "9660d936-bb23-4a15-afe4-d7d18a42bb21"
+                            }
+                        ]
+                    },
+                    "jsonPropertyHashCode": 2024601331,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 3154.4055424945645,
+                            "y": 603.883901291362
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Приемник - Iceberg"
+                },
+                {
+                    "nodeVersionId": "{{ protect.flowtask_uuid }}",
+                    "nodeId": "{{ protect.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 111,
+                    "nodeName": "{{ metaobject.entitytype_pname | lower }}_protection",
+                    "nodeDescription": "The transforming, masking and hashing block for {{ metaobject.entitytype_pname | lower }} data",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import com.alfa.DataProtection;\nimport com.fasterxml.jackson.databind.ObjectMapper;\nimport groovy.json.JsonSlurper;\nimport java.time.LocalDateTime;\nimport java.time.format.DateTimeFormatter;\n\ndef (\nicebergDatabase, icebergTableName, metaDataBaseSdiName,\nsaltIcebergSdiName, sourceDatabaseName, sourceTableName\n) = [\n\"bdp__wallet\", \"md_hashrules\", \"UM\",\n\"iceberg_bdp\", \"{{ metaobject.application_code | lower }}\", \"{{ metaobject.entitytype_pname | lower }}\"\n]\n\ndef properties = __PROPERTIES__\ndef s3Params = [\n\"bucketName\": \"nova\",\n\"maskingJarPath\": \"libs/masking/masking-functions-1.0-SNAPSHOT.jar\",\n]\n\n@Singleton(lazy = true)\nclass LocalDataProtector {\nDataProtection protector\nprivate static boolean isInitialized = false\nstatic LocalDataProtector initialize(\nicebergDatabase,icebergTableName,metaDataBaseSdiName,saltIcebergSdiName,\nproperties,sourceDatabaseName,sourceTableName,s3Params\n) {\nLocalDataProtector instance = LocalDataProtector.instance\nif (!isInitialized) {\ninstance.protector = new DataProtection.Builder()\n.setIcebergDatabase(icebergDatabase).setIcebergTableName(icebergTableName)\n.setMetaDataBaseSdiName(metaDataBaseSdiName).setS3Params(s3Params)\n.setProperties(properties).setSourceDatabaseName(sourceDatabaseName)\n.setSourceTableName(sourceTableName).setSaltIcebergSdiName(saltIcebergSdiName)\n.build()\nisInitialized = true\n}\nreturn instance\n}\n}\n\ndef protector = LocalDataProtector.initialize(\nicebergDatabase,icebergTableName,metaDataBaseSdiName,saltIcebergSdiName,\nproperties,sourceDatabaseName,sourceTableName,s3Params,\n).protector\n\nif (flag_key) {\n    def mapper = new ObjectMapper()\n    def meta = [:]\n    if (flag_value) {\n        meta = mapper.readValue(flag_value, Map)\n    } \n    protector.processFlag(flag_key, meta)\n}\n\ndef jsonSlurper = new JsonSlurper()\ndef data = jsonSlurper.parseText(data)\ndef formatter = DateTimeFormatter.ofPattern(\"yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'\")\ndef now = LocalDateTime.now()\ndef beforeId = data.before?.id\ndef c_date = (data.op == \"d\") ? null : data.after.created_at\ndef u_date = (data.op == \"d\") ? null : data.after.updated_at\n\nid = (data.op == \"d\") ? data.before.id.toInteger() : data.after.id.toInteger()\n{%- for line in protect.script_lines %}{{ line }}{{ "\\n" if not loop.last }}{%- endfor %}\ncreated_at = c_date != null ? LocalDateTime.parse(c_date, formatter).plusHours(3) : null\nupdated_at = u_date != null ? LocalDateTime.parse(u_date, formatter).plusHours(3) : null\n",
+                        "schema_id": "{{ schemas.mask_uuid }}",
+                        "schema_version_id": "{{ schemas.mask_uuid }}",
+                        "in": [
+                            "flag_key",
+                            "flag_value",
+                            "data"
+                        ],
+                        "out": [
+                        {%- for attr in protect.target_attributes %}
+                            "{{ attr | lower }}"{{ "," if not loop.last }}
+                        {%- endfor %}
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": 1850756764,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1353.6474051403216,
+                            "y": 260.0719279376802
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Groovy"
+                },
+                {
+                    "nodeVersionId": "{{ enrich_rdo.flowtask_uuid }}",
+                    "nodeId": "{{ enrich_rdo.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 111,
+                    "nodeName": "{{ metaobject.entitytype_pname }}_rdo_meta",
+                    "nodeDescription": "Mapping and filling in the technical attributes of the RDO structure",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import java.time.LocalDateTime\nimport java.time.format.DateTimeFormatter\nimport java.time.temporal.ChronoUnit\nimport groovy.json.JsonSlurper\nimport java.time.Instant\nimport java.time.ZoneId\n\ndef jsonSlurper = new JsonSlurper()\ndef data = jsonSlurper.parseText(data)\ndef instant = Instant.ofEpochMilli(data.ts_ms as long)\n\ndef determineOperation(data) {\n    if (!data || data.op == null || !['d', 'u', 'c', 'a'].contains(data.op)) {\n        return 'X'\n    }\n    switch (data.op) {\n        case 'd':\n            return 'D'\n        case 'u':\n            return 'U'\n        case 'a':\n            return 'A'\n        case 'c':\n            return data.before?.id != null ? 'U' : 'I'\n    }\n}\n\njob_insert_id = (long) -1\njob_update_id = (long) -1\njob_cdc_id = (long) __CONFIG__.get(\"job.instance_id\") \ntrx_id = data.source.txId != null ? data.source.txId.toString() : null\ncsn_id = data.source.lsn != null ? data.source.lsn.toString() : null\nbroker_partition_id = BROKER_PARTITION != null ? (long) BROKER_PARTITION : null\nbroker_offset_id = BROKER_OFFSET_ID != null ? (long) BROKER_OFFSET_ID : null\ndeleted_flag = (data.op == 'd') ? true : false\nsys_insert_stamp = null\nsys_update_stamp = LocalDateTime.now().plusHours(3)\nsrc_modified_stamp = instant != null ? LocalDateTime.ofInstant(instant, ZoneId.of(\"UTC\")).plusHours(3) : LocalDateTime.now().plusHours(3)\nopertype_last_code = determineOperation(data)",
+                        "schema_id": "e48c1f44-f6e6-46c1-a304-7b45e9265146",
+                        "schema_version_id": "0aeb91a7-95f0-1018-8195-f1909ba0030f",
+                        "in": [
+                            "BROKER_PARTITION",
+                            "BROKER_OFFSET_ID",
+                            "data"
+                        ],
+                        "out": [
+                            "job_insert_id",
+                            "job_update_id",
+                            "job_cdc_id",
+                            "trx_id",
+                            "csn_id",
+                            "broker_partition_id",
+                            "broker_offset_id",
+                            "deleted_flag",
+                            "sys_insert_stamp",
+                            "sys_update_stamp",
+                            "src_modified_stamp",
+                            "opertype_last_code"
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": -1219559698,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2011.1549831693708,
+                            "y": 475.5681836163401
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Groovy"
+                },
+                {
+                    "nodeVersionId": "{{ enrich_cdc.flowtask_uuid }}",
+                    "nodeId": "{{ enrich_cdc.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 111,
+                    "nodeName": "{{ metaobject.entitytype_pname }}_cdc_tech",
+                    "nodeDescription": "Mapping and filling in the technical attributes of the CDC structure",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import java.time.LocalDateTime\nimport java.time.format.DateTimeFormatter\nimport java.time.temporal.ChronoUnit\nimport groovy.json.JsonSlurper\nimport java.time.Instant\nimport java.time.ZoneId\n\ndef jsonSlurper = new JsonSlurper()\ndef data = jsonSlurper.parseText(data)\ndef instant = Instant.ofEpochMilli(data.ts_ms as long)\ndef determineOperation(data) {\n    if (!data || data.op == null || !['d', 'u', 'c', 'a'].contains(data.op)) {\n        return 'X'\n    }\n    switch (data.op) {\n        case 'd':\n            return 'D'\n        case 'u':\n            return 'U'\n        case 'a':\n            return 'A'\n        case 'c':\n            return data.before?.id != null ? 'U' : 'I'\n    }\n}\n\njob_insert_id = (long) -1\njob_cdc_id = (long) __CONFIG__.get(\"job.instance_id\")\ntrx_id = data.source.txId != null ? data.source.txId.toString() : null\ncsn_id = data.source.lsn != null ? data.source.lsn.toString() : null\nbroker_partition_id = BROKER_PARTITION != null ? (long) BROKER_PARTITION : null\nbroker_offset_id = BROKER_OFFSET_ID != null ? (long) BROKER_OFFSET_ID : null\ndeleted_flag = data.op == 'd' ? true : false\nsys_insert_stamp = LocalDateTime.now().plusHours(3)\nsrc_modified_stamp = instant != null ? LocalDateTime.ofInstant(instant, ZoneId.of(\"UTC\")).plusHours(3) : LocalDateTime.now().plusHours(3)\nopertype_code = determineOperation(data)\n",
+                        "schema_id": "0cffa967-ceda-4436-a77a-4fe6d608e40f",
+                        "schema_version_id": "0aeb91a7-95f0-1018-8195-f192c668031a",
+                        "in": [
+                            "BROKER_PARTITION",
+                            "BROKER_OFFSET_ID",
+                            "data"
+                        ],
+                        "out": [
+                            "job_insert_id",
+                            "job_cdc_id",
+                            "trx_id",
+                            "csn_id",
+                            "broker_partition_id",
+                            "broker_offset_id",
+                            "deleted_flag",
+                            "sys_insert_stamp",
+                            "src_modified_stamp",
+                            "opertype_code"
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": -150289196,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2011.3215122137071,
+                            "y": 737.5518925722982
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Groovy"
+                },
+                {
+                    "nodeVersionId": "{{ consume.flowtask_uuid }}",
+                    "nodeId": "{{ consume.flowtask_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "nodeTypeId": 102,
+                    "nodeName": "{{ metaobject.entitytype_pname | lower }}_kafka",
+                    "jsonProperty": {
+                        "nodeType": "102",
+                        "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+                        "schema_id": "4a3309a9-3c70-4421-bc4a-6e0ebf2c2aee",
+                        "schema_version_id": "0aeb9206-946e-1884-8194-6efc9c5b0091",
+                        "boundedness": "CONTINUOUS_UNBOUNDED",
+                        "serde": {
+                            "value": {
+                                "format": "json"
+                            },
+                            "key": {
+                                "enabled": false
+                            },
+                            "headers": {
+                                "enabled": false
+                            },
+                            "partition": {
+                                "name": "BROKER_PARTITION",
+                                "enabled": true
+                            },
+                            "offset": {
+                                "name": "BROKER_OFFSET_ID",
+                                "enabled": true
+                            },
+                            "timestamp": {
+                                "enabled": false
+                            }
+                        },
+                        "kafka": {
+                            "consumer": {
+                                "group_id": "{{ metaobject.application_code | lower }}_cids_{{ metaobject.entitytype_pname }}_consumer",
+                                "start_offsets": {
+                                    "committed": {
+                                        "reset_strategy": "earliest"
+                                    },
+                                    "type": "committed"
+                                },
+                                "topic": "{{ metaobject.application_code | lower}}__{{ metaobject.entitytype_pname | lower}}__journal",
+                                "properties": []
+                            }
+                        },
+                        "execution_options": {
+                            "logging": true
+                        }
+                    },
+                    "jsonPropertyHashCode": 1954602293,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 204.0,
+                            "y": 401.0
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Источник - Kafka"
+                }
+            ],
+            "links": [
+                {
+                    "linkId": "{{ enrich_rdo_modify_filter.flowtransition_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ enrich_rdo.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ enrich_rdo.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ modify_filter.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ modify_filter.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ enrich_rdo_delete_filter.flowtransition_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ enrich_rdo.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ enrich_rdo.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ delete_filter.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ delete_filter.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ protection_filter_enrich_cdc.flowtransition_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ protection_filter.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ protection_filter.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ enrich_cdc.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ enrich_cdc.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ sensitive_consume_union.flowtransition_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ consume_sensitive.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ consume_sensitive.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ union.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ union.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ union_protect.flowtransition_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ union.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ union.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ protect.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ protect.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ consume_union.flowtransition_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ consume.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ consume.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ union.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ union.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ enrich_cdc_load_cdc.flowtransition_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ enrich_cdc.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ enrich_cdc.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ load_cdc.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ load_cdc.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ modify_filter_load_rdo.flowtransition_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ modify_filter.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ modify_filter.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ load_rdo.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ load_rdo.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ protection_filter_enrich_rdo.flowtransition_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ protection_filter.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ protection_filter.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ enrich_rdo.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ enrich_rdo.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ delete_filter_load_rdd.flowtransition_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ delete_filter.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ delete_filter.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ load_rdd.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ load_rdd.flowtask_uuid }}"
+                },
+                {
+                    "linkId": "{{ protect_protection_filter.flowtransition_uuid }}",
+                    "diagramVersion": {
+                        "versionId": "{{ diagram_id }}"
+                    },
+                    "diagramVersionId": "{{ diagram_id }}",
+                    "prevNode": {
+                        "nodeVersionId": "{{ protect.flowtask_uuid }}"
+                    },
+                    "prevNodeVersionId": "{{ protect.flowtask_uuid }}",
+                    "nextNode": {
+                        "nodeVersionId": "{{ protection_filter.flowtask_uuid }}"
+                    },
+                    "nextNodeVersionId": "{{ protection_filter.flowtask_uuid }}"
+                }
+            ],
+            "variableLinkAssociations": [],
+            "variableNodeAssociations": [],
+            "createDt": "{{ current_date }}",
+            "changeDt": "{{ current_date }}"
+        }
+    },
+    "rootIdsAndDescriptions": {
+        "{{ diagram_id }}": {
+            "{{ diagram_id }}": "sf__kafka_bdp2bdp__{{ metaobject.application_code | lower }}__{{ metaobject.entitytype_pname | lower }} (latest)"
+        }
+    }
+}
+{#{%- endif -%}#}

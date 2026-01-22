@@ -1,0 +1,118 @@
+{%- if structure.metastructure_code in [
+    'mcRDO.msChangeDataCapture',
+    'mcRDO.msReplicaDataObject',
+    'mcRDO.msRawData',
+    'mcRDO.msReplicaDeletedData'
+]%}
+{%- set attrs = (structure.attributes or []) | list %}
+{%- set sorted_attrs = attrs | sort(attribute='orderno_ncode') -%}
+
+{#DROP TABLE IF EXISTS {{ structure.objectarea_pname }}.{{ structure.structure_pname }} PURGE;-#}
+
+CREATE OR REPLACE TABLE {{ structure.objectarea_pname }}.{{ structure.structure_pname }} (
+{%- for attr in sorted_attrs -%}
+    {%- set column_name = attr.attribute_pname -%}
+    {%- set not_null_mask = (
+        (attr.mandatory_flag is defined and attr.mandatory_flag == true and attr.domain_code != 'dSourceMaskedColumn')
+    ) -%}
+
+    {%- set raw_comment = attr.attribute_desc or '' -%}
+    {%- set comment = raw_comment | replace("'", "''") %}
+
+    {%- if attr.domain_code == 'dSourceMaskedColumn' -%}
+        {%- set comment = comment ~ '. Маскирование'-%}
+    {%- elif attr.domain_code == 'dSourceHashedColumn' -%}
+        {%- set comment = comment ~ '. Хеширование'-%}
+    {%- endif -%}
+
+    {%- if attr.tooldatatype_code == 'decimal' -%}
+        {%- set scale_size = attr.scale_size if attr.scale_size else 0 -%}
+        {%- set precision_size = attr.precision_size -%}
+        {%- set column_type = attr.tooldatatype_code ~ '(' ~ precision_size ~ ', ' ~ scale_size ~ ')' -%}
+    {%- else -%}
+        {%- set column_type = attr.tooldatatype_code -%}
+    {%- endif-%}
+    {%- set not_null = 'NOT NULL' if not_null_mask else '' %}
+    {{ column_name }} {{ column_type|upper }} {{ not_null }} COMMENT '{{ comment }}'{{ ',' if not loop.last }}
+{%- endfor -%}
+)
+USING iceberg
+{#-LOCATION 's3a://cids-data/{{ structure.objectarea_pname }}/{{ structure.structure_pname }}'-#}
+
+{#-Партиционирование с учетом отсутвия партиций-#}
+{%- if structure.partitions and structure.partitions | length > 0 %}
+{%- set partition = structure.partitions[0] %}
+{%- set expr = partition.subpartition_expr %}
+{%- set attrs = (partition.partition_attributes or []) | sort(attribute='orderno_ncode') %}
+{%- set partition_columns = [] %}
+{%- for attr in attrs -%}
+    {%- if attr.attribute_pname -%}
+        {%- if attr.partition_expr %}
+            {%- do partition_columns.append(attr.partition_expr) -%} 
+        {%- else %}
+            {%- do partition_columns.append(attr.attribute_pname) -%}
+        {%- endif %}
+    {%- endif -%}
+{%- endfor -%}
+
+{%- if expr is not none and expr != '' %}
+PARTITIONED BY ({{ expr }})
+{%- elif partition_columns | length > 0 %}
+PARTITIONED BY ({{ partition_columns | join(', ') }})
+{%- endif %}
+{%- endif %}
+{%- if structure.metastructure_code.endswith('msChangeDataCapture') %}
+COMMENT 'Журнал изменений таблицы {{ structure.objectarea_pname }}.{{ metaobject.entitytype_pname }}'
+{%- else %}
+COMMENT '{{ (structure.structure_desc or '') | replace("'", "''") }}'
+{%- endif %}
+TBLPROPERTIES (
+    'format' = 'iceberg/parquet',
+    'format-version' = '2',
+    'flink.max-continuous-empty-commits' = '1',
+    'write.distribution-mode' = 'hash',
+    'write.delete.mode' = 'merge-on-read',
+    'write.merge.mode' = 'merge-on-read',
+    'write.update.mode' = 'merge-on-read',
+    'write.metadata.delete-after-commit.enabled' = 'true',
+    'write.metadata.previous-versions-max' = '100',
+    'write.metadata.metrics.default' = 'none',
+    'write.parquet.compression-codec' = 'zstd',
+    'write.parquet.compression-level' = '3',
+
+{%- set filtered_attrs = [] %}
+{%- for attr in sorted_attrs -%}
+    {%- set domain_code = attr.domain_code -%}
+
+    {%- set key_mask = (domain_code == 'dSourceKeyColumn')-%}
+    {%- set hashed_mask = (domain_code == 'dSourceHashedColumn' and attr.mandatory_flag)-%}
+    {%- set meta_mask = (domain_code is not none and domain_code.startswith('dMeta')) -%}
+    {%- set timestamp_mask = (attr.tooldatatype_code == 'timestamp_ntz' and domain_code != 'dSourceKeyColumn') -%}
+
+    {%- if key_mask or hashed_mask or meta_mask or timestamp_mask -%}
+        {%- do filtered_attrs.append(attr) -%}
+    {%- endif -%}
+{%- endfor -%}
+{%- for attr in filtered_attrs %}
+    'write.metadata.metrics.column.{{ attr.attribute_pname }}' = 'full'{{ ',' if not loop.last }}
+{%- endfor %}
+);
+{%- if structure.metastructure_code in ['mcRDO.msReplicaDataObject', 'mcRDO.msChangeDataCapture'] %}
+{%- set sorted_attrs = (structure.attributes or []) | sort(attribute='orderno_ncode') %}
+
+{%- if structure.metastructure_code == 'mcRDO.msReplicaDataObject' %}
+    {%- set identifier_fields = [] %}
+    {%- for attr in sorted_attrs -%}
+        {%- set domain_code = attr.domain_code -%}
+        {%- if domain_code == 'dSourceKeyColumn' or (domain_code == 'dSourceHashedColumn' and attr.mandatory_flag) -%}
+            {%- do identifier_fields.append(attr.attribute_pname) -%}
+        {%- endif -%}
+    {%- endfor %}
+    {%- if identifier_fields %}
+ALTER TABLE {{ structure.objectarea_pname }}.{{ structure.structure_pname }} SET IDENTIFIER FIELDS {{ identifier_fields | join(', ') }};
+    {%- endif %}
+{%- endif %}
+
+ALTER TABLE {{ structure.objectarea_pname }}.{{ structure.structure_pname }} WRITE DISTRIBUTED BY PARTITION LOCALLY ORDERED BY src_modified_stamp ASC NULLS LAST;
+{%- endif %}
+{%- endif %}

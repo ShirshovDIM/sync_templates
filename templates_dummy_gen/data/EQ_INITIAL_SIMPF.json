@@ -1,0 +1,344 @@
+{
+    "diagrams": {
+        "6a8e90e3-fe98-49fc-a1d0-b06c4337599f": {
+            "diagramWithParameters": {
+                "lifeCycleState": "ACTIVE",
+                "versionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f",
+                "versionName": "latest",
+                "versionType": "LATEST",
+                "diagramId": "c99fcf1f-f782-4f3f-8394-2677c26b4a43",
+                "diagramNameEntity": {
+                    "id": "0aeb9348-95fc-1e60-8196-39cf8bb628ac",
+                    "objectId": "c99fcf1f-f782-4f3f-8394-2677c26b4a43",
+                    "objectName": "EQ_INITIAL_SIMPF"
+                },
+                "createDt": "2025-05-22 07:03:42.947",
+                "changeDt": "2025-05-22 09:03:42.400",
+                "lastChangeByUser": "6e62ade6-df15-4c5d-8ddf-0ad622c9db9b",
+                "createByUser": "8f533ad1-0f64-46e5-b7fb-1f147bd67993",
+                "blockFlag": false,
+                "errorResponseFlag": false,
+                "treatTerminalStateAsInitial": false,
+                "diagramDescription": "Maintaining phone numbers and IMSI of clients.\nDiagram for initializing loading from SIMPF, EQ source.",
+                "metaInfo": {
+                    "nodeCounter": 2
+                },
+                "saveDiagramMessage": false,
+                "diagramType": "DEFAULT",
+                "notificationEmails": [],
+                "inOutParameters": [
+                    {
+                        "parameterVersionId": "4d540161-2606-469d-b3cf-4dc8384e3169",
+                        "parameterId": "3d812219-b815-430c-a117-729bd5209bdb",
+                        "parameterName": "diagram_execute_status",
+                        "diagramVersion": {
+                            "versionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f"
+                        },
+                        "diagramVersionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f",
+                        "primitiveTypeId": "2",
+                        "primitiveType": {
+                            "typeId": "2"
+                        },
+                        "arrayFlag": false,
+                        "parameterType": "OUT",
+                        "sourceType": "OUTER",
+                        "scopeType": "DEFAULT",
+                        "defaultValue": "'0'",
+                        "metaInfo": {
+                            "orderNum": 0,
+                            "isExecuteStatus": true
+                        },
+                        "typeId": "2"
+                    }
+                ]
+            },
+            "nodes": [
+                {
+                    "nodeVersionId": "d66bb931-fa83-4463-b837-b262e6b2fc5a",
+                    "nodeId": "fd706bfa-46c8-42f6-9d94-44630c775438",
+                    "diagramVersion": {
+                        "versionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f"
+                    },
+                    "diagramVersionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f",
+                    "nodeTypeId": 111,
+                    "nodeName": "simpf_protection",
+                    "nodeDescription": "The masking and hashing block for SIMPF data",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import com.alfa.DataProtection;\nimport com.fasterxml.jackson.databind.ObjectMapper;\n\ndef (\nicebergDatabase, icebergTableName, metaDataBaseSdiName,\nsaltIcebergSdiName, sourceDatabaseName, sourceTableName\n) = [\n\"bdp__wallet\", \"md_hashrules\", \"UM\",\n\"iceberg_bdp\", \"eq\", \"simpf\"\n]\n\ndef properties = __PROPERTIES__\ndef s3Params = [\n\"bucketName\": \"nova\",\n\"maskingJarPath\": \"libs/masking/masking-functions-1.0-SNAPSHOT.jar\",\n]\n\n@Singleton(lazy = true)\nclass LocalDataProtector {\nDataProtection protector\nprivate static boolean isInitialized = false\nstatic LocalDataProtector initialize(\nicebergDatabase,icebergTableName,metaDataBaseSdiName,saltIcebergSdiName,\nproperties,sourceDatabaseName,sourceTableName,s3Params\n) {\nLocalDataProtector instance = LocalDataProtector.instance\nif (!isInitialized) {\ninstance.protector = new DataProtection.Builder()\n.setIcebergDatabase(icebergDatabase).setIcebergTableName(icebergTableName)\n.setMetaDataBaseSdiName(metaDataBaseSdiName).setS3Params(s3Params)\n.setProperties(properties).setSourceDatabaseName(sourceDatabaseName)\n.setSourceTableName(sourceTableName).setSaltIcebergSdiName(saltIcebergSdiName)\n.build()\nisInitialized = true\n}\nreturn instance\n}\n}\n\ndef protector = LocalDataProtector.initialize(\nicebergDatabase,icebergTableName,metaDataBaseSdiName,saltIcebergSdiName,\nproperties,sourceDatabaseName,sourceTableName,s3Params,\n).protector\n\nsimcus = SIMCUS\nsimclc = SIMCLC\nsimphone = SIMPHONE\nsimphone_hash = (SIMPHONE == null) ? null : (SIMPHONE.trim() == '') ? null : protector.hashData(\"simphone\", SIMPHONE.trim())\nsimphone_mask = protector.maskData(\"simphone\", SIMPHONE)\nsimprc = SIMPRC\nsimimsi = SIMIMSI\nsimdtim = (SIMDTIM == null) ? null : SIMDTIM.longValue()\nsimmonstr = SIMMONSTR\nsimmonend = SIMMONEND\nsimxm = SIMXM\nsimmon = SIMMON\nsimact = SIMACT\nsimvald = SIMVALD\nsimevnt = SIMEVNT\nsimulm = SIMULM\nsimtlm = SIMTLM\nsimevntlm = SIMEVNTLM\nsimimei = SIMIMEI\nsimimeitlm = SIMIMEITLM\nsimimsitlm = SIMIMSITLM",
+                        "schema_id": "4a8e6c92-4208-4e7f-a4b2-9e5a3d72696b",
+                        "schema_version_id": "0aeb9348-95fc-1e60-8196-33de6ae32226",
+                        "in": [
+                            "SIMCUS",
+                            "SIMCLC",
+                            "SIMPHONE",
+                            "SIMPRC",
+                            "SIMIMSI",
+                            "SIMDTIM",
+                            "SIMMONSTR",
+                            "SIMMONEND",
+                            "SIMXM",
+                            "SIMMON",
+                            "SIMACT",
+                            "SIMVALD",
+                            "SIMEVNT",
+                            "SIMULM",
+                            "SIMTLM",
+                            "SIMEVNTLM",
+                            "SIMIMEI",
+                            "SIMIMEITLM",
+                            "SIMIMSITLM"
+                        ],
+                        "out": [
+                            "simcus",
+                            "simclc",
+                            "simphone",
+                            "simphone_hash",
+                            "simphone_mask",
+                            "simprc",
+                            "simimsi",
+                            "simdtim",
+                            "simmonstr",
+                            "simmonend",
+                            "simxm",
+                            "simmon",
+                            "simact",
+                            "simvald",
+                            "simevnt",
+                            "simulm",
+                            "simtlm",
+                            "simevntlm",
+                            "simimei",
+                            "simimeitlm",
+                            "simimsitlm"
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": 594391308,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1513.9262535675452,
+                            "y": 314.12055619049625
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Groovy"
+                },
+                {
+                    "nodeVersionId": "8b50607e-cf43-4c1e-b8b0-0d7d5df38f16",
+                    "nodeId": "0dd4bf93-c45c-4585-86e6-e1fa761f66f8",
+                    "diagramVersion": {
+                        "versionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f"
+                    },
+                    "diagramVersionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f",
+                    "nodeTypeId": 121,
+                    "nodeName": "simpf_rdo",
+                    "jsonProperty": {
+                        "nodeType": "121",
+                        "data_provider_uuid": "0aeb93cc-95b8-1d5b-8195-cc7c38e50d50",
+                        "table_name": "eq.simpf",
+                        "field_mappings": [],
+                        "additional_properties": [
+                            {
+                                "name": "upsert-enabled",
+                                "value": "false",
+                                "row_key": "263e877a-3518-400e-a169-3b13e9f606d8"
+                            },
+                            {
+                                "name": "target-file-size-bytes",
+                                "value": "268435456",
+                                "row_key": "2c0c96fa-61c4-4d46-861c-a931c71922a1"
+                            }
+                        ]
+                    },
+                    "jsonPropertyHashCode": 1446756146,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2506.6706670425033,
+                            "y": 311.4532159645661
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Приемник - Iceberg"
+                },
+                {
+                    "nodeVersionId": "e548db61-13eb-4a64-891d-4ff28b9f41a5",
+                    "nodeId": "1421970a-5f19-4cd6-be4e-baf2ab07bb76",
+                    "diagramVersion": {
+                        "versionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f"
+                    },
+                    "diagramVersionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f",
+                    "nodeTypeId": 111,
+                    "nodeName": "simpf_rdo_meta",
+                    "nodeDescription": "Mapping and filling in the technical attributes of the RDO structure",
+                    "jsonProperty": {
+                        "nodeType": "111",
+                        "script_text": "import java.time.LocalDateTime\nimport java.time.format.DateTimeFormatter\nimport java.time.temporal.ChronoUnit\n\njob_insert_id = (long) -1\njob_update_id = (long) -1\njob_cdc_id = (long) __CONFIG__.get(\"job.instance_id\") \ntrx_id = null\ncsn_id = null\nbroker_partition_id = (long) BROKER_PARTITION\nbroker_offset_id = (long) BROKER_OFFSET_ID\ndeleted_flag = (actionType == 'DELETE') ? true : false\nsys_insert_stamp = null\nsys_update_stamp = LocalDateTime.now().plusHours(3)\nsrc_modified_stamp = LocalDateTime.parse(eqTimestamp, DateTimeFormatter.ofPattern(\"yyyy-MM-dd HH:mm:ss.SSSSSS\"))\nopertype_last_code = \"X\"",
+                        "schema_id": "e48c1f44-f6e6-46c1-a304-7b45e9265146",
+                        "schema_version_id": "0aeb91a7-95f0-1018-8195-f1909ba0030f",
+                        "in": [
+                            "BROKER_PARTITION",
+                            "BROKER_OFFSET_ID",
+                            "eqTimestamp",
+                            "actionType"
+                        ],
+                        "out": [
+                            "job_insert_id",
+                            "job_update_id",
+                            "job_cdc_id",
+                            "trx_id",
+                            "csn_id",
+                            "broker_partition_id",
+                            "broker_offset_id",
+                            "deleted_flag",
+                            "sys_insert_stamp",
+                            "sys_update_stamp",
+                            "src_modified_stamp",
+                            "opertype_last_code"
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": -780843001,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 2009.6014193907113,
+                            "y": 311.92692960208797
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Groovy"
+                },
+                {
+                    "nodeVersionId": "27107e33-6716-4219-8fde-9d06c7c9c11f",
+                    "nodeId": "a6840987-9131-4655-8c7e-4ee08ee292d3",
+                    "diagramVersion": {
+                        "versionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f"
+                    },
+                    "diagramVersionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f",
+                    "nodeTypeId": 102,
+                    "nodeName": "EQ_INITIAL_SIMPF",
+                    "jsonProperty": {
+                        "nodeType": "102",
+                        "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+                        "schema_id": "45b18529-628f-48fe-9860-bc50d13ff799",
+                        "schema_version_id": "0aeb9348-95fc-1e60-8196-33cb3e8b220c",
+                        "boundedness": "CONTINUOUS_UNBOUNDED",
+                        "serde": {
+                            "value": {
+                                "format": "json"
+                            },
+                            "key": {
+                                "enabled": false
+                            },
+                            "headers": {
+                                "enabled": false
+                            },
+                            "partition": {
+                                "name": "BROKER_PARTITION",
+                                "enabled": true
+                            },
+                            "offset": {
+                                "name": "BROKER_OFFSET_ID",
+                                "enabled": true
+                            },
+                            "timestamp": {
+                                "enabled": false
+                            }
+                        },
+                        "kafka": {
+                            "consumer": {
+                                "group_id": "eq_cids_simpf_consumer",
+                                "start_offsets": {
+                                    "committed": {
+                                        "reset_strategy": "earliest"
+                                    },
+                                    "type": "committed"
+                                },
+                                "topic": "EQ_INITIAL_SIMPF",
+                                "properties": []
+                            }
+                        },
+                        "execution_options": {
+                            "logging": true
+                        }
+                    },
+                    "jsonPropertyHashCode": 964342050,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1004.4666666666667,
+                            "y": 311.79999999999995
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Источник - Kafka"
+                }
+            ],
+            "links": [
+                {
+                    "linkId": "9a63374d-c8e5-467b-9796-cd6c2cf60a81",
+                    "diagramVersion": {
+                        "versionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f"
+                    },
+                    "diagramVersionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f",
+                    "prevNode": {
+                        "nodeVersionId": "d66bb931-fa83-4463-b837-b262e6b2fc5a"
+                    },
+                    "prevNodeVersionId": "d66bb931-fa83-4463-b837-b262e6b2fc5a",
+                    "nextNode": {
+                        "nodeVersionId": "e548db61-13eb-4a64-891d-4ff28b9f41a5"
+                    },
+                    "nextNodeVersionId": "e548db61-13eb-4a64-891d-4ff28b9f41a5"
+                },
+                {
+                    "linkId": "724fff99-ab82-494f-8f94-78f7df36035f",
+                    "diagramVersion": {
+                        "versionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f"
+                    },
+                    "diagramVersionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f",
+                    "prevNode": {
+                        "nodeVersionId": "e548db61-13eb-4a64-891d-4ff28b9f41a5"
+                    },
+                    "prevNodeVersionId": "e548db61-13eb-4a64-891d-4ff28b9f41a5",
+                    "nextNode": {
+                        "nodeVersionId": "8b50607e-cf43-4c1e-b8b0-0d7d5df38f16"
+                    },
+                    "nextNodeVersionId": "8b50607e-cf43-4c1e-b8b0-0d7d5df38f16"
+                },
+                {
+                    "linkId": "c2b5e031-5b4b-4f27-ae6e-a2af82a2873c",
+                    "diagramVersion": {
+                        "versionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f"
+                    },
+                    "diagramVersionId": "6a8e90e3-fe98-49fc-a1d0-b06c4337599f",
+                    "prevNode": {
+                        "nodeVersionId": "27107e33-6716-4219-8fde-9d06c7c9c11f"
+                    },
+                    "prevNodeVersionId": "27107e33-6716-4219-8fde-9d06c7c9c11f",
+                    "nextNode": {
+                        "nodeVersionId": "d66bb931-fa83-4463-b837-b262e6b2fc5a"
+                    },
+                    "nextNodeVersionId": "d66bb931-fa83-4463-b837-b262e6b2fc5a"
+                }
+            ],
+            "variableLinkAssociations": [],
+            "variableNodeAssociations": [],
+            "changeDt": "2025-05-22 09:03:42.400",
+            "createDt": "2025-05-22 07:03:42.947"
+        }
+    },
+    "rootIdsAndDescriptions": {
+        "6a8e90e3-fe98-49fc-a1d0-b06c4337599f": {
+            "6a8e90e3-fe98-49fc-a1d0-b06c4337599f": "EQ_INITIAL_SIMPF (latest)"
+        }
+    }
+}

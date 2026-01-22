@@ -1,0 +1,264 @@
+{
+    "diagrams": {
+        "12d65ac1-e6df-4517-8f33-fb1d92db4683": {
+            "changeDt": "2025-12-25 19:12:26.020",
+            "createDt": "2025-12-24 16:11:47.886",
+            "diagramWithParameters": {
+                "blockFlag": false,
+                "changeDt": "2025-12-25 19:12:26.020",
+                "createByUser": "cdf6e415-4cc1-4cfe-8f34-9c81ea0cd3a3",
+                "createDt": "2025-12-24 16:11:47.886",
+                "diagramId": "7566b066-16c3-4694-a720-f7efb21e10b7",
+                "diagramKeyFields": [],
+                "diagramNameEntity": {
+                    "id": "f9e1f846-be19-4c3a-921a-b693cedecd9f",
+                    "objectId": "7566b066-16c3-4694-a720-f7efb21e10b7",
+                    "objectName": "dbezuim_tst"
+                },
+                "diagramType": "DEFAULT",
+                "errorResponseFlag": false,
+                "inOutParameters": [],
+                "lastChangeByUser": "cdf6e415-4cc1-4cfe-8f34-9c81ea0cd3a3",
+                "lifeCycleState": "ACTIVE",
+                "metaInfo": {
+                    "nodeCounter": 6
+                },
+                "notificationEmails": [],
+                "saveDiagramMessage": false,
+                "treatTerminalStateAsInitial": false,
+                "versionId": "12d65ac1-e6df-4517-8f33-fb1d92db4683",
+                "versionName": "latest",
+                "versionType": "LATEST"
+            },
+            "links": [],
+            "nodes": [
+                {
+                    "diagramVersion": {
+                        "versionId": "12d65ac1-e6df-4517-8f33-fb1d92db4683"
+                    },
+                    "diagramVersionId": "12d65ac1-e6df-4517-8f33-fb1d92db4683",
+                    "displayType": "Источник - CDC - MongoDB MultiTable",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "capture_all_tables": false,
+                        "data_provider_uuid": "0f95e2d0-5776-402c-bbd8-bc261a0d827f",
+                        "debezium": {
+                            "properties": []
+                        },
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "include_schema": false,
+                        "nodeType": "140",
+                        "tables": [
+                            {
+                                "name": "some_table_1",
+                                "row_key": "fc877954-bb73-4f05-ba16-c00dc02ae6d5"
+                            },
+                            {
+                                "name": "some_table_2",
+                                "row_key": "b90f9705-a375-448d-8449-b6f27bd16cff"
+                            },
+                            {
+                                "name": "some_table_3",
+                                "row_key": "c37321ce-a7ad-42d1-bddf-bbb91bc2f086"
+                            }
+                        ],
+                        "timezone": "UTC"
+                    },
+                    "jsonPropertyHashCode": 1339361343,
+                    "metaInfo": {
+                        "position": {
+                            "x": 138.37210215198638,
+                            "y": 516.1188446793595
+                        }
+                    },
+                    "nodeId": "fbbbf979-7297-41d3-867c-8f32425910a0",
+                    "nodeName": "Источник - CDC - MongoDB MultiTable_5",
+                    "nodeTypeId": 140,
+                    "nodeVersionId": "70fe02c3-11b3-40ee-b020-f2761a26251a",
+                    "validState": "INVALID"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "12d65ac1-e6df-4517-8f33-fb1d92db4683"
+                    },
+                    "diagramVersionId": "12d65ac1-e6df-4517-8f33-fb1d92db4683",
+                    "displayType": "Источник - CDC - MS SQL MultiTable",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "capture_all_tables": false,
+                        "data_provider_uuid": "0aeb9206-946e-1884-8195-4203238d765c",
+                        "debezium": {
+                            "properties": []
+                        },
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "include_schema": false,
+                        "nodeType": "135",
+                        "tables": [
+                            {
+                                "name": "some_table_1",
+                                "row_key": "a88c0448-06f6-4278-b460-febad5c16c08"
+                            },
+                            {
+                                "name": "some_table_2",
+                                "row_key": "92b9ba82-62f4-4dd7-b8be-f95c3f0eacc3"
+                            }
+                        ],
+                        "timezone": "UTC"
+                    },
+                    "jsonPropertyHashCode": -1949645878,
+                    "metaInfo": {
+                        "position": {
+                            "x": 133.14733898968166,
+                            "y": 310.00132549803607
+                        }
+                    },
+                    "nodeId": "c019dc16-2adb-4d88-a491-a584059dab07",
+                    "nodeName": "Источник - CDC - MS SQL MultiTable_4",
+                    "nodeTypeId": 135,
+                    "nodeVersionId": "42bbe554-7c11-4ff0-b29f-d40723776746",
+                    "validState": "INVALID"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "12d65ac1-e6df-4517-8f33-fb1d92db4683"
+                    },
+                    "diagramVersionId": "12d65ac1-e6df-4517-8f33-fb1d92db4683",
+                    "displayType": "Источник - CDC - PostgreSQL MultiTable",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "capture_all_tables": false,
+                        "cdc": {
+                            "postgres": {
+                                "changelog": {
+                                    "mode": "all"
+                                },
+                                "decoding": {
+                                    "plugin": {
+                                        "name": "pgoutput"
+                                    }
+                                },
+                                "server": {
+                                    "time": {
+                                        "zone": "UTC"
+                                    }
+                                },
+                                "slot": {
+                                    "name": "flink"
+                                },
+                                "table": {
+                                    "name": [
+                                        "clients"
+                                    ]
+                                }
+                            }
+                        },
+                        "data_provider_uuid": "0aeb9206-946e-1884-8194-b734bfd61e1e",
+                        "debezium": {
+                            "properties": []
+                        },
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "fields": {
+                            "data": {
+                                "schema": {
+                                    "included": false
+                                }
+                            }
+                        },
+                        "nodeType": "114"
+                    },
+                    "jsonPropertyHashCode": -1583796429,
+                    "metaInfo": {
+                        "position": {
+                            "x": 127.0,
+                            "y": 106.0
+                        }
+                    },
+                    "nodeId": "8325c9e4-30d4-4cd7-a82a-7e4c48d3ac00",
+                    "nodeName": "Источник - CDC - PostgreSQL MultiTable_0",
+                    "nodeTypeId": 114,
+                    "nodeVersionId": "317d83cf-b0fb-4811-9cbf-18fdf43fb8d2",
+                    "validState": "VALID"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "12d65ac1-e6df-4517-8f33-fb1d92db4683"
+                    },
+                    "diagramVersionId": "12d65ac1-e6df-4517-8f33-fb1d92db4683",
+                    "displayType": "Источник - CDC - Oracle MultiTable",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "capture_all_tables": false,
+                        "cdc": {
+                            "oracle": {
+                                "scan": {
+                                    "startup": {
+                                        "mode": "INITIAL"
+                                    }
+                                },
+                                "server": {
+                                    "time": {
+                                        "zone": "UTC"
+                                    }
+                                },
+                                "table": {
+                                    "name": [
+                                        "clientlpnonfininfo_sstat"
+                                    ]
+                                }
+                            }
+                        },
+                        "data_provider_uuid": "0aeb91fc-92e2-18fe-8192-e2d0bcfb0002",
+                        "debezium": {
+                            "properties": [
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {}
+                            ]
+                        },
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "fields": {
+                            "data": {
+                                "schema": {
+                                    "included": false
+                                }
+                            }
+                        },
+                        "nodeType": "116"
+                    },
+                    "jsonPropertyHashCode": -31325508,
+                    "metaInfo": {
+                        "position": {
+                            "x": 122.91242623808364,
+                            "y": -101.7477534832559
+                        }
+                    },
+                    "nodeId": "c2475f0f-6c53-4b11-ae0e-285be87162f7",
+                    "nodeName": "Источник - CDC - Oracle MultiTable_3",
+                    "nodeTypeId": 116,
+                    "nodeVersionId": "6a4c9073-52fb-4174-b3e8-f9f5d5e9694f",
+                    "validState": "INVALID"
+                }
+            ],
+            "variableLinkAssociations": [],
+            "variableNodeAssociations": []
+        }
+    },
+    "rootIdsAndDescriptions": {
+        "12d65ac1-e6df-4517-8f33-fb1d92db4683": {
+            "12d65ac1-e6df-4517-8f33-fb1d92db4683": "dbezuim_tst (latest)"
+        }
+    }
+}

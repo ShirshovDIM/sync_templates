@@ -1,0 +1,165 @@
+ {%- if 'Mirror' in structure.metastructure_code and 'Sensitive' not in structure.metastructure_code %}
+
+    {%- set ns = namespace(snapshot=True, stop=False) %}
+    {%- for s in metaobject.structures %}
+      {%- if 'DataSrcDefinition' in s.metastructure_code %}
+        {%- set ns.datasrc_structure = s %}
+        {%- set ns.stop = False %}
+        {%- for a in s.attributes %}
+        {%- endfor %}
+      {%- elif 'Source' in s.metastructure_code and 'Sensitive' not in s.metastructure_code and 'Raw' not in s.metastructure_code %}
+        {%- set ns.deltasrc_structure = s %}
+      {%- endif %}
+    {%- endfor %}
+
+    {% set ns1 = namespace(list_attr=[]) %}
+    {% set ns2 = namespace(list_attr=[]) %}
+    {% set ns_pk = namespace(list_attr=[]) %}
+    {% set ns2_without_pk = namespace(list_attr=[]) %}
+
+    {%- for s in metaobject.structures %}
+        {%- if 'Mirror' in s.metastructure_code %}
+            {%- set list_index_attributes = s.indexes[0].index_attributes -%}
+            {%- for index_attribute in list_index_attributes %}
+                {% set local_attr = (index_attribute.attribute_pname | upper) %}
+                {%- set ns_pk.list_attr = ns_pk.list_attr + [local_attr] -%}
+            {%- endfor %}
+        {%- endif %}
+    {%- endfor %}
+
+    {%- set ns_dsrc = namespace() %}
+    {%- for object_structure in metaobject.structures %}
+          {%- if object_structure.metastructure_code is defined and object_structure.metastructure_code in [
+              'msComplexHistSource',
+              'msComplexHistSourceSensitive',
+              'msDimSource',
+              'msFactSource',
+              'msComplexSource',
+              'msComplexSourceSensitive'] %}
+          {%- set ns_dsrc.dsrc_structure = object_structure %}
+          {%- endif %}
+    {%- endfor -%}
+
+
+    {# Макрос для формирования ключей для JOIN #}
+    {%- macro get_join_and_null_for_pk(list_pk, list1, list2) %}
+    {%- if list1 | length != list2 | length %}
+        <error>Списки разной длины</error>
+    {%- else %}
+    {%- set ns_local = namespace(attr_for_join=[], attr_for_null=[]) %}
+    {%- for index in range(list2 | length) %}
+            {%- if list1[index] in list_pk %}
+                {%- set local_variable_for_join = "on src." ~ list1[index] ~ " = trg." ~ list2[index] -%}
+                {%- set ns_local.attr_for_join = ns_local.attr_for_join + [local_variable_for_join] -%}
+                {%- set local_variable_for_null = "or trg." ~ list2[index] ~ " is null" -%}
+                {%- set ns_local.attr_for_null = ns_local.attr_for_null + [local_variable_for_null] -%}
+            {% else %}
+                {%- set local_variable_for_decode = "or decode(src." ~ list1[index] ~ ",trg." ~ list2[index]  ~ ",0,1)=1" -%}
+                {%- set ns2_without_pk.list_attr = ns2_without_pk.list_attr + [local_variable_for_decode] -%}
+            {%- endif %}
+    {%- endfor %}
+
+    {%- for on_for_join in ns_local.attr_for_join %}
+            {{ on_for_join }}{%- if not loop.last %} and {% endif %}
+    {%- endfor %}
+    where 1=1
+    {%- for attr_for_null in ns_local.attr_for_null %}
+            {{ attr_for_null }}
+    {%- endfor %}
+    {%- endif %}
+    {%- endmacro %}
+
+
+    {# Макрос для формирования блока decode  #}
+    {%- macro get_or_decode(list) %}
+    {%- for str_for_print in list %}
+            {{str_for_print}}
+    {%- endfor %}
+    {%- endmacro %}
+
+    {# Макрос для формирования CTE-запроса для выбора последней версии записи#}
+    {%- macro get_cte_clause(structure) -%}
+        with {{ metaobject.entitytype_pname | upper }} as (
+            select * from (
+                select n.*, row_number() over(partition by 
+                    {%- for a in ns.datasrc_structure.attributes|selectattr('domain_code', 'eq', 'dSourceKeyColumn')|sort(attribute='orderno_ncode') %}
+                        {{- a.attribute_pname | upper }}
+                        {%- if not loop.last %}, {% endif %}
+                    {%- endfor %} 
+                    order by DWSSRCDTTM desc) as rn
+                from {{ ns.datasrc_structure.objectarea_pname | upper }}.{{ ns.datasrc_structure.structure_pname | upper }} n
+                where DWSSRCDTTM >= TO_TIMESTAMP('01.01.1900','DD.MM.YYYY fmHH24fm:MI:SS,FF') 
+                  and DWSSRCDTTM < TO_TIMESTAMP('30.12.5999','DD.MM.YYYY fmHH24fm:MI:SS,FF')
+            )
+            where rn=1
+        )
+    {%- endmacro -%}
+
+    {# Макрос для формирования общего селекта #}
+    {%- macro get_all_attr(list1, list2) %}
+      {%- if list1 | length != list2 | length %}
+        <error>Списки разной длины</error>
+      {%- else %}
+        {%- for index in range(list1 | length) %}
+            src.{{ list1[index] }}, trg.{{ list2[index] }}
+        {%- endfor %}
+      {%- endif %}
+    {%- endmacro %}
+
+
+{# Макрос для формирования SELECT-запроса #}
+{%- macro get_select_clause(structure, use_cte=False) -%}
+    {#2select Проверяем, является ли структура определением источника данных #}
+    {%- if 'DataSrcDefinition' in structure.metastructure_code %}     
+    select
+            {%- for a in structure.attributes|sort(attribute='orderno_ncode') %}
+                {% if a.propvalues_json['conversion']  -%}
+                    {%- set local_attr = ( a.propvalues_json['conversion'] | upper ) -%}
+                    {%- set ns2.list_attr = ns2.list_attr + [local_attr] -%}
+                    {{- local_attr }}
+                {%- else -%}
+                    {%- set local_attr = ( a.attribute_pname | upper ) -%}
+                    {%- set ns2.list_attr = ns2.list_attr + [local_attr] -%}
+                    {{- local_attr }}
+                {%- endif %}
+                {%- if not loop.last %}, {% endif %}
+            {%- endfor %}
+        from {%- if use_cte is true %} {{ metaobject.entitytype_pname | upper }}
+             {%- else %} {{ structure.objectarea_pname | upper }}.{{ structure.structure_pname | upper }}
+             {%- endif %}
+    {#1select Если структура не является определением источника данных #}
+    {%- else %}
+    select
+            {% for a in structure.attributes|selectattr('baseattribute_code', 'eq', None)|sort(attribute='orderno_ncode') %}
+                {%- if not a.attribute_pname.endswith('_hash') -%}
+                    {%- set local_attr = ( a.attribute_pname | upper ) -%}
+                    {%- set ns1.list_attr = ns1.list_attr + [local_attr] -%}
+                {{ local_attr -}} {%- if not loop.last %}, {% endif %}
+                {% endif %}
+            {%- endfor -%}
+from {{ structure.objectarea_pname | upper }}.{{ (metaobject.entitytype_pname + metaobject.propvalues_json['source_code'] | string + structure.structure_pname | replace(metaobject.entitytype_pname, '') | replace('_pii', '')) | upper }}
+    {%- endif %}
+{%- endmacro -%}
+
+
+{# Основная логика запроса в зависимости от флага snapshot #}
+{%- if ns.snapshot is false %}       
+{# Блок CTE (отказались) {{- get_cte_clause(ns.datasrc_structure) }} #}
+with src as
+({{- get_select_clause(ns_dsrc.dsrc_structure) }}
+)
+, trg as
+({{- get_select_clause(ns.datasrc_structure, True) -}}
+)
+select
+    {{- get_all_attr(ns1.list_attr, ns2.list_attr)}}
+from src left join trg
+    {{- get_join_and_null_for_pk(ns_pk.list_attr,ns1.list_attr, ns2.list_attr, )}}
+    {{- get_or_decode(ns2_without_pk.list_attr)}};
+{%- else %}
+    {{- get_select_clause(ns.deltasrc_structure) }}
+    minus
+    {{- get_select_clause(ns.datasrc_structure) }};
+{%- endif %}
+{%- endif %}
+{#-{{ index_attribute.__class__.__name__ }}#}

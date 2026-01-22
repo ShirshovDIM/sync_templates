@@ -1,0 +1,295 @@
+{
+    "diagrams": {
+        "144f2f98-d429-47d9-8f03-9db61a4cb70e": {
+            "changeDt": "2025-12-22 16:06:51.125",
+            "createDt": "2025-12-05 14:12:20.850",
+            "diagramWithParameters": {
+                "blockFlag": false,
+                "changeDt": "2025-12-22 16:06:51.125",
+                "createByUser": "88f0b83c-3a9c-4e24-8705-0f2fc7dcce9e",
+                "createDt": "2025-12-05 14:12:20.850",
+                "diagramId": "cb76562b-6767-4fca-ab67-4d1790518484",
+                "diagramKeyFields": [],
+                "diagramNameEntity": {
+                    "id": "5c9cf220-e993-400e-a2eb-1e4aacd6d865",
+                    "objectId": "cb76562b-6767-4fca-ab67-4d1790518484",
+                    "objectName": "cdcf__oracle2kafka_bdp__AlfaCapture"
+                },
+                "diagramType": "DEFAULT",
+                "errorResponseFlag": false,
+                "inOutParameters": [],
+                "lastChangeByUser": "88f0b83c-3a9c-4e24-8705-0f2fc7dcce9e",
+                "lifeCycleState": "ACTIVE",
+                "metaInfo": {
+                    "nodeCounter": 4
+                },
+                "notificationEmails": [],
+                "saveDiagramMessage": false,
+                "treatTerminalStateAsInitial": false,
+                "versionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e",
+                "versionName": "latest",
+                "versionType": "LATEST"
+            },
+            "links": [
+                {
+                    "diagramVersion": {
+                        "versionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e"
+                    },
+                    "diagramVersionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e",
+                    "linkId": "eb41b9e4-9a61-42a5-9946-51c4fb627b9d",
+                    "nextNode": {
+                        "nodeVersionId": "bb22c6b7-5a32-444a-b3be-a4f89f0e7b40"
+                    },
+                    "nextNodeVersionId": "bb22c6b7-5a32-444a-b3be-a4f89f0e7b40",
+                    "prevNode": {
+                        "nodeVersionId": "b10356cc-d65f-42ee-87fe-78a76c5e12ed"
+                    },
+                    "prevNodeVersionId": "b10356cc-d65f-42ee-87fe-78a76c5e12ed"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e"
+                    },
+                    "diagramVersionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e",
+                    "linkId": "3b48244b-5838-414c-8b04-f128bce48a9e",
+                    "nextNode": {
+                        "nodeVersionId": "15ab0ee6-4b35-4e91-b61e-d42c62c143c7"
+                    },
+                    "nextNodeVersionId": "15ab0ee6-4b35-4e91-b61e-d42c62c143c7",
+                    "prevNode": {
+                        "nodeVersionId": "bb22c6b7-5a32-444a-b3be-a4f89f0e7b40"
+                    },
+                    "prevNodeVersionId": "bb22c6b7-5a32-444a-b3be-a4f89f0e7b40"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e"
+                    },
+                    "diagramVersionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e",
+                    "linkId": "26e568e3-a630-4464-9b8a-1c351cda5069",
+                    "nextNode": {
+                        "nodeVersionId": "b10356cc-d65f-42ee-87fe-78a76c5e12ed"
+                    },
+                    "nextNodeVersionId": "b10356cc-d65f-42ee-87fe-78a76c5e12ed",
+                    "prevNode": {
+                        "nodeVersionId": "184542c2-84c2-42bf-9037-1f6ea67d9753"
+                    },
+                    "prevNodeVersionId": "184542c2-84c2-42bf-9037-1f6ea67d9753"
+                }
+            ],
+            "nodes": [
+                {
+                    "diagramVersion": {
+                        "versionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e"
+                    },
+                    "diagramVersionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e",
+                    "displayType": "Трансформация - Простая - Маппинг",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        },
+                        "mapping": [
+                            {
+                                "alias": "data",
+                                "expression": "data"
+                            },
+                            {
+                                "alias": "table_name",
+                                "expression": "table_name"
+                            },
+                            {
+                                "alias": "key_value",
+                                "expression": "cast(\r\ncase \r\nwhen table_name in (\r\n    'ESKDDB.ACCOUNT',\r\n    'ESKDDB.BOX',\r\n    'ESKDDB.BUSINESS_PROCESS',\r\n    'ESKDDB.CHANNEL',\r\n    'ESKDDB.CLIENT',\r\n    'ESKDDB.COMPANY',\r\n    'ESKDDB.DEAL',\r\n    'ESKDDB.DEAL_DOCUMENT_LINK',\r\n    'ESKDDB.DEAL_PARTICIPANT',\r\n    'ESKDDB.DOC_ERROR',\r\n    'ESKDDB.DOCUMENT',\r\n    'ESKDDB.DOCUMENT_STATUS',\r\n    'ESKDDB.DOCUMENT_TYPE',\r\n    'ESKDDB.FILE_DATA',\r\n    'ESKDDB.OPERATION',\r\n    'ESKDDB.OPERATION_CLIENT_LINK',\r\n    'ESKDDB.OPERATION_TYPE',\r\n    'ESKDDB.PAGE',\r\n    'ESKDDB.PRODUCT',\r\n    'ESKDDB.SCAN',\r\n    'ESKDDB.SCAN_PAGE_LINK',\r\n    'ESKDDB.SIGN',\r\n    'ESKDDB.TRADE_POINT'\r\n)\r\nthen IF(json_value(data, '$.op') = 'd', json_value(data, '$.before.id'), json_value(data, '$.after.id')) \r\nend\r\nas string )"
+                            },
+                            {
+                                "alias": "topic_body",
+                                "expression": "replace(lower(table_name), '.', '__')"
+                            },
+                            {
+                                "alias": "postfix",
+                                "expression": "'journal'"
+                            }
+                        ],
+                        "nodeType": "104"
+                    },
+                    "jsonPropertyHashCode": -889810507,
+                    "metaInfo": {
+                        "position": {
+                            "x": 845.5177977468155,
+                            "y": 361.9741349243597
+                        }
+                    },
+                    "nodeId": "8d332cd1-070d-4b18-8af9-f09f5f89e981",
+                    "nodeName": "Трансформация - Простая - Маппинг_2",
+                    "nodeTypeId": 104,
+                    "nodeVersionId": "b10356cc-d65f-42ee-87fe-78a76c5e12ed",
+                    "validState": "VALID"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e"
+                    },
+                    "diagramVersionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e",
+                    "displayType": "Трансформация - Фильтр",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        },
+                        "filter": "table_name in (\r\n    'ESKDDB.ACCOUNT',\r\n    'ESKDDB.BOX',\r\n    'ESKDDB.BUSINESS_PROCESS',\r\n    'ESKDDB.CHANNEL',\r\n    'ESKDDB.CLIENT',\r\n    'ESKDDB.COMPANY',\r\n    'ESKDDB.DEAL',\r\n    'ESKDDB.DEAL_DOCUMENT_LINK',\r\n    'ESKDDB.DEAL_PARTICIPANT',\r\n    'ESKDDB.DOC_ERROR',\r\n    'ESKDDB.DOCUMENT',\r\n    'ESKDDB.DOCUMENT_STATUS',\r\n    'ESKDDB.DOCUMENT_TYPE',\r\n    'ESKDDB.FILE_DATA',\r\n    'ESKDDB.OPERATION',\r\n    'ESKDDB.OPERATION_CLIENT_LINK',\r\n    'ESKDDB.OPERATION_TYPE',\r\n    'ESKDDB.PAGE',\r\n    'ESKDDB.PRODUCT',\r\n    'ESKDDB.SCAN',\r\n    'ESKDDB.SCAN_PAGE_LINK',\r\n    'ESKDDB.SIGN',\r\n    'ESKDDB.TRADE_POINT'\r\n)",
+                        "nodeType": "105"
+                    },
+                    "jsonPropertyHashCode": -832865046,
+                    "metaInfo": {
+                        "position": {
+                            "x": 1323.5177977468156,
+                            "y": 361.97413492435965
+                        }
+                    },
+                    "nodeId": "4aa540fd-fedf-40a0-b5fb-320d275a0c03",
+                    "nodeName": "Трансформация - Простая - Фильтр_3",
+                    "nodeTypeId": 105,
+                    "nodeVersionId": "bb22c6b7-5a32-444a-b3be-a4f89f0e7b40",
+                    "validState": "VALID"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e"
+                    },
+                    "diagramVersionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e",
+                    "displayType": "Приёмник - Брокер сообщений - Kafka",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "execution_options": {},
+                        "kafka": {
+                            "producer": {
+                                "properties": [
+                                    {
+                                        "name": "transaction.timeout.ms",
+                                        "row_key": "aa1314de-dea4-4b6a-8d2e-b7809bad8161",
+                                        "value": "900000"
+                                    }
+                                ],
+                                "semantic": "AT_LEAST_ONCE",
+                                "topic_selection_type": "dynamic",
+                                "topic_selector": {
+                                    "delimiter": "__",
+                                    "fields": [
+                                        "topic_body",
+                                        "postfix"
+                                    ],
+                                    "prefix": "alfacapture2__eskddev__"
+                                }
+                            }
+                        },
+                        "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+                        "nodeType": "103",
+                        "serde": {
+                            "key": {
+                                "enabled": false
+                            },
+                            "value": {
+                                "format": "json"
+                            }
+                        }
+                    },
+                    "jsonPropertyHashCode": 104119896,
+                    "metaInfo": {
+                        "position": {
+                            "x": 1783.0000000000005,
+                            "y": 360.0
+                        }
+                    },
+                    "nodeId": "fa789b5b-dddf-43c1-9816-081ec38f28a9",
+                    "nodeName": "Приёмник - Брокер сообщений - Kafka_1",
+                    "nodeTypeId": 103,
+                    "nodeVersionId": "15ab0ee6-4b35-4e91-b61e-d42c62c143c7",
+                    "validState": "VALID"
+                },
+                {
+                    "diagramVersion": {
+                        "versionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e"
+                    },
+                    "diagramVersionId": "144f2f98-d429-47d9-8f03-9db61a4cb70e",
+                    "displayType": "Источник - CDC - Oracle MultiTable",
+                    "isTemplate": false,
+                    "jsonProperty": {
+                        "capture_all_tables": true,
+                        "cdc": {
+                            "oracle": {
+                                "scan": {
+                                    "startup": {
+                                        "mode": "LATEST_OFFSET"
+                                    }
+                                },
+                                "server": {
+                                    "time": {
+                                        "zone": "UTC"
+                                    }
+                                }
+                            }
+                        },
+                        "data_provider_uuid": "c9b0fb4c-d299-43f3-9c16-b7b388d05923",
+                        "debezium": {
+                            "properties": [
+                                {
+                                    "name": "snapshot.mode",
+                                    "value": "no_data"
+                                },
+                                {
+                                    "name": "database.connection.adapter",
+                                    "value": "xstream"
+                                },
+                                {
+                                    "name": "database.out.server.name",
+                                    "value": "dbzxout"
+                                },
+                                {
+                                    "name": "database.pdb.name",
+                                    "value": "ESKDDEV"
+                                },
+                                {
+                                    "name": "schema.include.list",
+                                    "value": "ESKDDB"
+                                }
+                            ]
+                        },
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "fields": {
+                            "data": {
+                                "schema": {
+                                    "included": false
+                                }
+                            }
+                        },
+                        "nodeType": "116"
+                    },
+                    "jsonPropertyHashCode": -513039660,
+                    "metaInfo": {
+                        "position": {
+                            "x": 381.0,
+                            "y": 362.0
+                        }
+                    },
+                    "nodeId": "94923c77-5316-495b-a525-5b66228cab4c",
+                    "nodeName": "Источник - CDC - Oracle MultiTable_0",
+                    "nodeTypeId": 116,
+                    "nodeVersionId": "184542c2-84c2-42bf-9037-1f6ea67d9753",
+                    "validState": "VALID"
+                }
+            ],
+            "variableLinkAssociations": [],
+            "variableNodeAssociations": []
+        }
+    },
+    "rootIdsAndDescriptions": {
+        "144f2f98-d429-47d9-8f03-9db61a4cb70e": {
+            "144f2f98-d429-47d9-8f03-9db61a4cb70e": "cdcf__oracle2kafka_bdp__AlfaCapture (latest)"
+        }
+    }
+}

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(head:*)",
+      "Skill(glm-implement)",
+      "Bash(claude-glm -p \"TASK: Create MS SQL CDC Jinja2 template\n\n1. First, read the main reference file to understand diagram structure:\n   C:/Users/dbezu/work/Export_FEdaqUdnKl.json\n\n2. Then read the MS SQL node example:\n   C:/Users/dbezu/work/Export_nWhAkFPaMu.json\n   Find the node with nodeTypeId: 135\n\n3. Read the specification:\n   C:/Users/dbezu/work/docs/CDCF_TEMPLATES_SPEC.md\n\n4. Create file: C:/Users/dbezu/work/templates/cdcf/mssql.j2\n\nThe template must:\n- Have 4 nodes: Source\\(135\\) -> Mapping\\(104\\) -> Filter\\(105\\) -> Kafka\\(103\\)\n- Have 3 links connecting them\n- Source node: flat structure with timezone, include_schema, tables[], capture_all_tables: true\n- Mapping key_value uses ''id'' \\(lowercase\\)\n- Use simple Jinja only: {{ var }}, {% for %}, {% if %}\n- NO macros, NO includes\n\nInput variables: diagram_version_id, diagram_id, entity_id, diagram_name, diagram_description, current_date, connection_uid, table_list, topic_prefix, source_node_id, source_node_version_id, mapping_node_id, mapping_node_version_id, filter_node_id, filter_node_version_id, kafka_node_id, kafka_node_version_id, link_source_to_mapping, link_mapping_to_filter, link_filter_to_kafka, transaction_row_key\" --allowedTools \"Write,Read,Glob,Grep\" --output-format text)",
+      "Bash(claude-glm -p \"Create the file C:/Users/dbezu/work/templates/cdcf/mongo.j2 with a MongoDB CDC Jinja2 template.\n\nFIRST read these reference files:\n1. C:/Users/dbezu/work/Export_FEdaqUdnKl.json - for overall diagram structure \\(4 nodes with Filter\\)\n2. C:/Users/dbezu/work/Export_nWhAkFPaMu.json - find nodeTypeId 140 for MongoDB source structure\n\nTHEN write the template file.\n\nRequirements:\n- 4 nodes: Source\\(140\\) -> Mapping\\(104\\) -> Filter\\(105\\) -> Kafka\\(103\\)\n- 3 links connecting them\n- MongoDB Source node: flat structure with timezone, include_schema, tables[], capture_all_tables: true\n- Key field for MongoDB is ''_id'' \\(with underscore!\\)\n- Use simple Jinja: {{ var }}, {% for %}, {% if %} - NO macros/includes\n\nUse Write tool to create the file.\" --allowedTools \"Write,Read,Glob,Grep\" --output-format text)",
+      "Bash(claude-glm:*)"
+    ]
+  }
+}
