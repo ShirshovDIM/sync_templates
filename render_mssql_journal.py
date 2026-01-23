@@ -14,92 +14,23 @@ from jinja2 import Environment, FileSystemLoader
 
 
 def parse_metaclass(metadata_path: str) -> dict:
-    """Парсит метакласс из JSON файла и извлекает нужные параметры."""
+    """Парсит метакласс из JSON файла и передаёт как есть для шаблона."""
     with open(metadata_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     # Извлекаем текущее состояние
     current = data[0].get('current', {})
 
-    # Извлекаем задачи и их UUID
-    tasks = current.get('tasks', [])
-    task_uuids = {}
-    for task in tasks:
-        task_pname = task.get('task_pname', '')
-        task_uuid = task.get('propvalues_json', {}).get('task_uuid', '')
-        if task_pname and task_uuid:
-            task_uuids[task_pname] = task_uuid
-
-    # Извлекаем переходы и их UUID
-    transitions = current.get('task_transitions', [])
-    transition_uuids = {}
-    for trans in transitions:
-        from_code = trans.get('task_from_code', '').split('.')[-1]
-        to_code = trans.get('task_to_code', '').split('.')[-1]
-        key = f"{from_code}__{to_code}"
-        propvalues = trans.get('propvalues_json')
-        if propvalues:
-            trans_uuid = propvalues.get('flowtransition_uuid', str(uuid.uuid4()))
-        else:
-            trans_uuid = str(uuid.uuid4())
-        transition_uuids[key] = trans_uuid
-
-    # Извлекаем provider_uuid из modules
-    appsystems = current.get('appsystems', [])
-    provider_uuid = None
-    module_uuid = None
-    data_provider_uuid = None
-    module_pname = None
-    application_code = None
-
-    for appsys in appsystems:
-        if appsys.get('domain_code') == 'dBusinessSystem':
-            applications = appsys.get('applications', [])
-            for app in applications:
-                application_code = app.get('application_code')
-                modules = app.get('modules', [])
-                for module in modules:
-                    module_pname = module.get('module_pname', '')
-                    module_uuid = module.get('propvalues_json', {}).get('module_uuid')
-                    data_provider_uuid = module.get('propvalues_json', {}).get('data_provider_uuid')
-                    if data_provider_uuid:
-                        provider_uuid = data_provider_uuid
-                    break
-
-    # Извлекаем таблицы из metaobjects
-    metaobjects = current.get('metaobjects', [])
-    tables = []
-    for obj in metaobjects:
-        entitytype_pname = obj.get('entitytype_pname', '')
-        if entitytype_pname:
-            # Парсим schema__table формат
-            parts = entitytype_pname.split('__')
-            if len(parts) == 2:
-                schema, table = parts
-                tables.append({
-                    'schema': schema,
-                    'table': table,
-                    'full': f"{schema}.{table}"
-                })
-
-    # Генерируем diagram_id
+    # Генерируем diagram_id (это не из метакласса, требуется для рендера)
     diagram_id = str(uuid.uuid4())
 
-    # Текущая дата
+    # Текущая дата (это не из метакласса, требуется для рендера)
     current_date = datetime.now()
 
-    # Код приложения и модуля
-    app_code = application_code or current.get('application_code', 'app')
-    mod_code = module_pname or current.get('module_code', 'module')
-
+    # Передаём весь метакласс как есть, без трансформаций
     return {
-        'provider_uuid': provider_uuid or str(uuid.uuid4()),
+        'metaclass': current,
         'diagram_id': diagram_id,
-        'task_uuids': task_uuids,
-        'transition_uuids': transition_uuids,
-        'tables': tables,
-        'app_code': app_code,
-        'module_code': mod_code.replace(app_code + '__', '') if '__' in mod_code else mod_code,
         'current_date': current_date,
     }
 
@@ -133,13 +64,22 @@ def main():
     print(f"Parsing metaclass from: {metadata_file}")
     context = parse_metaclass(metadata_file)
 
+    metaclass = context['metaclass']
     print(f"Context:")
-    print(f"  app_code: {context['app_code']}")
-    print(f"  module_code: {context['module_code']}")
-    print(f"  provider_uuid: {context['provider_uuid']}")
+    print(f"  application_code: {metaclass.get('application_code', '')}")
+    print(f"  module_code: {metaclass.get('module_code', '')}")
+    # module_pname находится в appsystems[0].applications[0].modules[0].module_pname
+    module_pname = ''
+    if metaclass.get('appsystems'):
+        apps = metaclass['appsystems'][0].get('applications', [])
+        if apps:
+            modules = apps[0].get('modules', [])
+            if modules:
+                module_pname = modules[0].get('module_pname', '')
+    print(f"  module_pname: {module_pname}")
+    print(f"  workflow_pname: {metaclass.get('workflow_pname', '')}")
     print(f"  diagram_id: {context['diagram_id']}")
-    print(f"  task_uuids: {list(context['task_uuids'].keys())}")
-    print(f"  tables: {len(context['tables'])} tables")
+    print(f"  metaobjects: {len(metaclass.get('metaobjects', []))} objects")
 
     print(f"\nRendering template: {template_path}")
     rendered = render_template(str(template_path), context)

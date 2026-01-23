@@ -1,21 +1,41 @@
-{%- set ns = namespace(app_code=app_code, module_code=module_code, diagram_id=diagram_id) -%}
+{%- set _module = metaclass.appsystems[0].applications[0].modules[0] -%}
+{%- set ns = namespace() -%}
+{%- set ns.app_code = metaclass.application_code -%}
+{%- set ns.module_code = metaclass.module_code -%}
+{%- set ns.module_pname = _module.module_pname -%}
+{%- set ns.diagram_id = diagram_id -%}
 {%- set ns_current_date = current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000) -%}
 {%- set ns.key_value_tables = "'public.heartbeat', 'public.resolutions', 'public.user_actions', 'public.alfa_capture_transanctions',  'public.client_reports', 'public.sales_users', 'public.lm_clients', 'public.clients', 'public.inbound_containers'" -%}
-{%- set ns.read_db_log_id = task_uuids.get('read_db_log', task_uuids.get('mmReadTransactionLog', '')) -%}
-{%- set ns.split_data_id = task_uuids.get('split_data', task_uuids.get('mmSplitTransactionLog', '')) -%}
-{%- set ns.read_db_log_version_id = uuid_generate() -%}
-{%- set ns.split_data_version_id = uuid_generate() -%}
-{%- set ns.kafka_node_id = 'ead5379e-8bf3-4aec-ac55-16eacd0fb8db' -%}
-{%- set ns.kafka_node_version_id = 'fffb45d0-5011-4c9a-a4a9-f7c7fc7b203c' -%}
-{%- set ns.link_cdc_mapping = transition_uuids.get('read_db_log__split_data', uuid_generate()) -%}
-{%- set ns.link_mapping_kafka = transition_uuids.get('split_data__kafka', uuid_generate()) -%}
-{%- set ns.debezium_schema_row_key = uuid_generate() -%}
-{%- set ns.debezium_snapshot_row_key = uuid_generate() -%}
-{%- set ns.kafka_tx_row_key = uuid_generate() -%}
-{%- set ns.table_row_keys = {} -%}
-{%- for tbl in tables -%}
-  {%- set _ = ns.table_row_keys.update({tbl.full: uuid_generate()}) -%}
+
+{%- set ns.task_uuids = {} -%}
+{%- for task in metaclass.tasks -%}
+  {%- if task.propvalues_json.task_uuid -%}
+    {%- set _ = ns.task_uuids.update({task.task_pname: task.propvalues_json.task_uuid}) -%}
+  {%- endif -%}
 {%- endfor -%}
+
+{%- set ns.transition_uuids = {} -%}
+{%- for trans in metaclass.task_transitions -%}
+  {%- set _from_code = trans.task_from_code.split('.')[-1] -%}
+  {%- set _to_code = trans.task_to_code.split('.')[-1] -%}
+  {%- set _key = _from_code + '__' + _to_code -%}
+  {%- set _trans_uuid = trans.propvalues_json.flowtransition_uuid if trans.propvalues_json and trans.propvalues_json.flowtransition_uuid else uuid_generate() -%}
+  {%- set _ = ns.transition_uuids.update({_key: _trans_uuid}) -%}
+{%- endfor -%}
+
+{%- set ns.read_db_log_id = ns.task_uuids.get('read_db_log', ns.task_uuids.get('mmReadTransactionLog', '')) -%}
+{%- set ns.split_data_id = ns.task_uuids.get('split_data', ns.task_uuids.get('mmSplitTransactionLog', '')) -%}
+{%- set ns.kafka_node_id = ns.task_uuids.get('produce_data', ns.task_uuids.get('mmProduceData', '')) -%}
+{%- set ns.read_db_log_version_id = ns.read_db_log_id -%}
+{%- set ns.split_data_version_id = ns.split_data_id -%}
+{%- set ns.kafka_node_version_id = ns.kafka_node_id -%}
+{%- set ns.link_cdc_mapping = ns.transition_uuids.get('mmReadTransactionLog__mmSplitTransactionLog', uuid_generate()) -%}
+{%- set ns.link_mapping_kafka = ns.transition_uuids.get('mmSplitTransactionLog__mmProduceData', uuid_generate()) -%}
+{%- set ns.debezium_snapshot_row_key = '7085bf25-cc5b-4a27-94d1-42813bfb5078' -%}
+{%- set ns.kafka_tx_row_key = uuid_generate() -%}
+{%- set ns.provider_uuid = _module.propvalues_json.data_provider_uuid -%}
+{%- set ns.source_schema_uuid = metaclass.metaobjects[0].source_schema_uuid if metaclass.metaobjects else '' -%}
+{%- set ns.diagram_object_name = 'cdcf__' + ns.app_code + '2kafka_bdp__' + ns.module_code + '__journal' -%}
 
 {
     "diagrams": {
@@ -27,13 +47,12 @@
                 "changeDt": "{{ ns_current_date }}",
                 "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
                 "createDt": "{{ ns_current_date }}",
-                "diagramDescription": "CDCF Journal MS SQL to Kafka for {{ ns.app_code }}_{{ ns.module_code }}",
                 "diagramId": "{{ ns.diagram_id }}",
                 "diagramKeyFields": [],
                 "diagramNameEntity": {
                     "id": "{{ ns.diagram_id }}",
                     "objectId": "{{ ns.diagram_id }}",
-                    "objectName": "cdcf__{{ ns.app_code | lower }}2kafka_bdp__{{ ns.app_code | lower }}__{{ ns.module_code | lower }}__journal"
+                    "objectName": "{{ ns.diagram_object_name }}"
                 },
                 "diagramType": "DEFAULT",
                 "errorResponseFlag": false,
@@ -140,21 +159,21 @@
                     },
                     "diagramVersionId": "{{ ns.diagram_id }}",
                     "nodeTypeId": 135,
-                    "nodeName": "cdc__{{ ns.app_code | lower }}__{{ ns.module_code | lower }}",
+                    "nodeName": "cdc__{{ ns.module_pname }}",
                     "jsonProperty": {
                         "nodeType": "135",
                         "execution_options": {
                             "logging": true
                         },
-                        "data_provider_uuid": "{{ provider_uuid }}",
+                        "data_provider_uuid": "{{ ns.provider_uuid }}",
                         "capture_all_tables": false,
                         "timezone": "Europe/Moscow",
                         "include_schema": false,
                         "tables": [
-                            {%- for tbl in tables -%}
+                            {%- for obj in metaclass.metaobjects -%}
                             {
-                                "name": "{{ tbl.full }}",
-                                "row_key": "{{ ns.table_row_keys.get(tbl.full, uuid_generate()) }}"
+                                "name": "{{ obj.source_schema_pname }}.{{ obj.source_object_pname }}",
+                                "row_key": "{{ obj.sd_structure_uuid }}"
                             }{%- if not loop.last %},{% endif %}
                             {%- endfor -%}
                         ],
@@ -163,7 +182,7 @@
                                 {
                                     "name": "schema.include.list",
                                     "value": "dbo",
-                                    "row_key": "{{ ns.debezium_schema_row_key }}"
+                                    "row_key": "{{ ns.source_schema_uuid }}"
                                 },
                                 {
                                     "name": "snapshot.mode",
@@ -192,7 +211,7 @@
                     },
                     "diagramVersionId": "{{ ns.diagram_id }}",
                     "nodeTypeId": 103,
-                    "nodeName": "kafka__{{ ns.app_code | lower }}__{{ ns.module_code | lower }}",
+                    "nodeName": "kafka__{{ ns.module_pname }}",
                     "jsonProperty": {
                         "nodeType": "103",
                         "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
@@ -213,7 +232,7 @@
                                 "semantic": "AT_LEAST_ONCE",
                                 "topic_selection_type": "dynamic",
                                 "topic_selector": {
-                                    "prefix": "{{ ns.app_code | lower }}__{{ ns.module_code | lower }}__",
+                                    "prefix": "{{ ns.module_pname }}__",
                                     "delimiter": "__",
                                     "fields": [
                                         "topic_body",
@@ -251,7 +270,7 @@
     },
     "rootIdsAndDescriptions": {
         "{{ ns.diagram_id }}": {
-            "{{ ns.diagram_id }}": "cdcf__{{ ns.app_code | lower }}2kafka_bdp__{{ ns.app_code | lower }}__{{ ns.module_code | lower }}__journal (latest)"
+            "{{ ns.diagram_id }}": "{{ ns.diagram_object_name }} (latest)"
         }
     }
 }
