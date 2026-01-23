@@ -1,0 +1,233 @@
+{
+    "diagrams": {
+        "f28f4603-0b2c-4486-b89c-cedeec0ed39a": {
+            "changeDt": "2026-01-23 16:52:19.944",
+            "createDt": "2026-01-23 16:52:19.944",
+            "diagramWithParameters": {
+                "blockFlag": false,
+                "changeDt": "2026-01-23 16:52:19.944",
+                "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+                "createDt": "2026-01-23 16:52:19.944",
+                "diagramId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a",
+                "diagramKeyFields": [],
+                "diagramNameEntity": {
+                    "id": "f28f4603-0b2c-4486-b89c-cedeec0ed39a",
+                    "objectId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a",
+                    "objectName": "cdcf__contact2kafka_bdp__contact2_web__journal"
+                },
+                "diagramType": "DEFAULT",
+                "errorResponseFlag": false,
+                "inOutParameters": [],
+                "lastChangeByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
+                "lifeCycleState": "ACTIVE",
+                "metaInfo": {
+                    "nodeCounter": 2
+                },
+                "notificationEmails": [],
+                "saveDiagramMessage": false,
+                "treatTerminalStateAsInitial": false,
+                "versionId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a",
+                "versionName": "latest",
+                "versionType": "LATEST"
+            },
+            "links": [
+                {
+                    "linkId": "91552532-7266-4d41-9ae2-7ff622850fe9",
+                    "diagramVersion": {
+                        "versionId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a"
+                    },
+                    "diagramVersionId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a",
+                    "prevNode": {
+                        "nodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9"
+                    },
+                    "prevNodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9",
+                    "nextNode": {
+                        "nodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771"
+                    },
+                    "nextNodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771"
+                },
+                {
+                    "linkId": "fe195916-2fb8-43fe-bb6c-bb05e2abd584",
+                    "diagramVersion": {
+                        "versionId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a"
+                    },
+                    "diagramVersionId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a",
+                    "prevNode": {
+                        "nodeVersionId": "b5453bb5-f808-581f-b2ef-c167bc374f9b"
+                    },
+                    "prevNodeVersionId": "b5453bb5-f808-581f-b2ef-c167bc374f9b",
+                    "nextNode": {
+                        "nodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9"
+                    },
+                    "nextNodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9"
+                }
+            ],
+            "nodes": [
+                {
+                    "nodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9",
+                    "nodeId": "87d26546-b18c-5395-b540-e7d1b97b1be9",
+                    "diagramVersion": {
+                        "versionId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a"
+                    },
+                    "diagramVersionId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a",
+                    "nodeTypeId": 104,
+                    "nodeName": "key_value__allocation",
+                    "jsonProperty": {
+                        "nodeType": "104",
+                        "mapping": [
+                            {
+                                "expression": "data",
+                                "alias": "data"
+                            },
+                            {
+                                "expression": "table_name",
+                                "alias": "table_name"
+                            },
+                            {
+                                "expression": "cast( case  when table_name in  ('public.heartbeat', 'public.resolutions', 'public.user_actions', 'public.alfa_capture_transanctions',  'public.client_reports', 'public.sales_users', 'public.lm_clients', 'public.clients', 'public.inbound_containers')  then\\n        IF(json_value(data, '$.op') = 'd', json_value(data, '$.before.id'), json_value(data, '$.after.id'))  end as string )",
+                                "alias": "key_value"
+                            },
+                            {
+                                "expression": "replace(table_name, '.', '__')",
+                                "alias": "topic_body"
+                            },
+                            {
+                                "expression": "'journal'",
+                                "alias": "postfix"
+                            }
+                        ],
+                        "execution_options": {
+                            "logging": true,
+                            "start_new_chain": false
+                        }
+                    },
+                    "jsonPropertyHashCode": 1883690727,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 717.0104141235352,
+                            "y": 410.01734924316406
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Трансформация - Простая - Маппинг"
+                },
+                {
+                    "nodeVersionId": "b5453bb5-f808-581f-b2ef-c167bc374f9b",
+                    "nodeId": "b5453bb5-f808-581f-b2ef-c167bc374f9b",
+                    "diagramVersion": {
+                        "versionId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a"
+                    },
+                    "diagramVersionId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a",
+                    "nodeTypeId": 135,
+                    "nodeName": "cdc__contact__contact2_web",
+                    "jsonProperty": {
+                        "nodeType": "135",
+                        "execution_options": {
+                            "logging": true
+                        },
+                        "data_provider_uuid": "8876ea2f-b5ad-453f-9b85-03098efe30c8",
+                        "capture_all_tables": false,
+                        "timezone": "Europe/Moscow",
+                        "include_schema": false,
+                        "tables": [{
+                                "name": "dbo.contact_log",
+                                "row_key": "824a7b0c-71e6-5116-a2a0-ec7e97d4957d"
+                            }],
+                        "debezium": {
+                            "properties": [
+                                {
+                                    "name": "schema.include.list",
+                                    "value": "dbo",
+                                    "row_key": "10b798cc-a471-5511-92aa-604047cf8468"
+                                },
+                                {
+                                    "name": "snapshot.mode",
+                                    "value": "no_data",
+                                    "row_key": "7085bf25-cc5b-4a27-94d1-42813bfb5078"
+                                }
+                            ]
+                        }
+                    },
+                    "jsonPropertyHashCode": 492059253,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 212.01041412353516,
+                            "y": 410.01734924316406
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Источник - CDC - MS SQL MultiTable"
+                },
+                {
+                    "nodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771",
+                    "nodeId": "095f24b9-9278-541a-a82c-0cb9c0ae2771",
+                    "diagramVersion": {
+                        "versionId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a"
+                    },
+                    "diagramVersionId": "f28f4603-0b2c-4486-b89c-cedeec0ed39a",
+                    "nodeTypeId": 103,
+                    "nodeName": "kafka__contact__contact2_web",
+                    "jsonProperty": {
+                        "nodeType": "103",
+                        "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
+                        "serde": {
+                            "value": {
+                                "format": "json"
+                            },
+                            "key": {
+                                "enabled": true,
+                                "format": "csv",
+                                "key_by": [
+                                    "key_value"
+                                ]
+                            }
+                        },
+                        "kafka": {
+                            "producer": {
+                                "semantic": "AT_LEAST_ONCE",
+                                "topic_selection_type": "dynamic",
+                                "topic_selector": {
+                                    "prefix": "contact__contact2_web__",
+                                    "delimiter": "__",
+                                    "fields": [
+                                        "topic_body",
+                                        "postfix"
+                                    ]
+                                },
+                                "properties": [
+                                    {
+                                        "name": "transaction.timeout.ms",
+                                        "value": "900000",
+                                        "row_key": "e418b260-34ba-4a6a-be43-58d9617f8ba8"
+                                    }
+                                ]
+                            }
+                        },
+                        "execution_options": {}
+                    },
+                    "jsonPropertyHashCode": 2055780749,
+                    "validState": "VALID",
+                    "metaInfo": {
+                        "position": {
+                            "x": 1252.0104141235352,
+                            "y": 410.01734924316406
+                        }
+                    },
+                    "isTemplate": false,
+                    "displayType": "Приёмник - Брокер сообщений - Kafka"
+                }
+            ],
+            "variableLinkAssociations": [],
+            "variableNodeAssociations": [],
+            "changeDt": "2026-01-23 16:52:19.944",
+            "createDt": "2026-01-23 16:52:19.944"
+        }
+    },
+    "rootIdsAndDescriptions": {
+        "f28f4603-0b2c-4486-b89c-cedeec0ed39a": {
+            "f28f4603-0b2c-4486-b89c-cedeec0ed39a": "cdcf__contact2kafka_bdp__contact2_web__journal (latest)"
+        }
+    }
+}
