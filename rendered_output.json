@@ -1,58 +1,19 @@
-{%- set _module = metaclass.appsystems[0].applications[0].modules[0] -%}
-{%- set ns = namespace() -%}
-{%- set ns.app_code = metaclass.application_code -%}
-{%- set ns.module_code = metaclass.module_code -%}
-{%- set ns.module_pname = _module.module_pname -%}
-{%- set ns.diagram_id = diagram_id -%}
-{%- set ns_current_date = current_date.strftime('%Y-%m-%d %H:%M:%S.') + '%03d' % (current_date.microsecond // 1000) -%}
-{%- set ns.key_value_tables = "'public.heartbeat', 'public.resolutions', 'public.user_actions', 'public.alfa_capture_transanctions',  'public.client_reports', 'public.sales_users', 'public.lm_clients', 'public.clients', 'public.inbound_containers'" -%}
-
-{%- set ns.task_uuids = {} -%}
-{%- for task in metaclass.tasks -%}
-  {%- if task.propvalues_json.task_uuid -%}
-    {%- set _ = ns.task_uuids.update({task.task_pname: task.propvalues_json.task_uuid}) -%}
-  {%- endif -%}
-{%- endfor -%}
-
-{%- set ns.transition_uuids = {} -%}
-{%- for trans in metaclass.task_transitions -%}
-  {%- set _from_code = trans.task_from_code.split('.')[-1] -%}
-  {%- set _to_code = trans.task_to_code.split('.')[-1] -%}
-  {%- set _key = _from_code + '__' + _to_code -%}
-  {%- set _trans_uuid = trans.propvalues_json.flowtransition_uuid -%}
-  {%- set _ = ns.transition_uuids.update({_key: _trans_uuid}) -%}
-{%- endfor -%}
-
-{%- set ns.read_db_log_id = ns.task_uuids.get('read_db_log', ns.task_uuids.get('mmReadTransactionLog', '')) -%}
-{%- set ns.split_data_id = ns.task_uuids.get('split_data', ns.task_uuids.get('mmSplitTransactionLog', '')) -%}
-{%- set ns.kafka_node_id = ns.task_uuids.get('produce_data', ns.task_uuids.get('mmProduceData', '')) -%}
-{%- set ns.read_db_log_version_id = ns.read_db_log_id -%}
-{%- set ns.split_data_version_id = ns.split_data_id -%}
-{%- set ns.kafka_node_version_id = ns.kafka_node_id -%}
-{%- set ns.link_cdc_mapping = ns.transition_uuids.get('mmReadTransactionLog__mmSplitTransactionLog') -%}
-{%- set ns.link_mapping_kafka = ns.transition_uuids.get('mmSplitTransactionLog__mmProduceData') -%}
-{%- set ns.debezium_snapshot_row_key = '7085bf25-cc5b-4a27-94d1-42813bfb5078' -%}
-{%- set ns.kafka_tx_row_key = 'e418b260-34ba-4a6a-be43-58d9617f8ba8' -%}
-{%- set ns.provider_uuid = _module.propvalues_json.data_provider_uuid -%}
-{%- set ns.source_schema_uuid = metaclass.metaobjects[0].source_schema_uuid if metaclass.metaobjects else '' -%}
-{%- set ns.diagram_object_name = 'cdcf__' + ns.app_code + '2kafka_bdp__' + ns.module_code + '__journal' -%}
-
 {
     "diagrams": {
-        "{{ ns.diagram_id }}": {
-            "changeDt": "{{ ns_current_date }}",
-            "createDt": "{{ ns_current_date }}",
+        "158299f3-f9b0-42a2-8138-b85cc0dadcfb": {
+            "changeDt": "2026-01-27 10:48:15.168",
+            "createDt": "2026-01-27 10:48:15.168",
             "diagramWithParameters": {
                 "blockFlag": false,
-                "changeDt": "{{ ns_current_date }}",
+                "changeDt": "2026-01-27 10:48:15.168",
                 "createByUser": "980fff61-44ae-42ad-95bf-5339a580a9ee",
-                "createDt": "{{ ns_current_date }}",
-                "diagramId": "{{ ns.diagram_id }}",
+                "createDt": "2026-01-27 10:48:15.168",
+                "diagramId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb",
                 "diagramKeyFields": [],
                 "diagramNameEntity": {
-                    "id": "{{ ns.diagram_id }}",
-                    "objectId": "{{ ns.diagram_id }}",
-                    "objectName": "{{ ns.diagram_object_name }}"
+                    "id": "158299f3-f9b0-42a2-8138-b85cc0dadcfb",
+                    "objectId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb",
+                    "objectName": "cdcf__contact2kafka_bdp__contact2_web__journal"
                 },
                 "diagramType": "DEFAULT",
                 "errorResponseFlag": false,
@@ -65,50 +26,50 @@
                 "notificationEmails": [],
                 "saveDiagramMessage": false,
                 "treatTerminalStateAsInitial": false,
-                "versionId": "{{ ns.diagram_id }}",
+                "versionId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb",
                 "versionName": "latest",
                 "versionType": "LATEST"
             },
             "links": [
                 {
-                    "linkId": "{{ ns.link_mapping_kafka }}",
+                    "linkId": "0c7c7261-accb-5a5e-83e7-6f78b9cb157a",
                     "diagramVersion": {
-                        "versionId": "{{ ns.diagram_id }}"
+                        "versionId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb"
                     },
-                    "diagramVersionId": "{{ ns.diagram_id }}",
+                    "diagramVersionId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb",
                     "prevNode": {
-                        "nodeVersionId": "{{ ns.split_data_version_id }}"
+                        "nodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9"
                     },
-                    "prevNodeVersionId": "{{ ns.split_data_version_id }}",
+                    "prevNodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9",
                     "nextNode": {
-                        "nodeVersionId": "{{ ns.kafka_node_version_id }}"
+                        "nodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771"
                     },
-                    "nextNodeVersionId": "{{ ns.kafka_node_version_id }}"
+                    "nextNodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771"
                 },
                 {
-                    "linkId": "{{ ns.link_cdc_mapping }}",
+                    "linkId": "29ee2012-16e8-5d8a-913c-ae60be8adfbe",
                     "diagramVersion": {
-                        "versionId": "{{ ns.diagram_id }}"
+                        "versionId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb"
                     },
-                    "diagramVersionId": "{{ ns.diagram_id }}",
+                    "diagramVersionId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb",
                     "prevNode": {
-                        "nodeVersionId": "{{ ns.read_db_log_version_id }}"
+                        "nodeVersionId": "b5453bb5-f808-581f-b2ef-c167bc374f9b"
                     },
-                    "prevNodeVersionId": "{{ ns.read_db_log_version_id }}",
+                    "prevNodeVersionId": "b5453bb5-f808-581f-b2ef-c167bc374f9b",
                     "nextNode": {
-                        "nodeVersionId": "{{ ns.split_data_version_id }}"
+                        "nodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9"
                     },
-                    "nextNodeVersionId": "{{ ns.split_data_version_id }}"
+                    "nextNodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9"
                 }
             ],
             "nodes": [
                 {
-                    "nodeVersionId": "{{ ns.split_data_version_id }}",
-                    "nodeId": "{{ ns.split_data_id }}",
+                    "nodeVersionId": "87d26546-b18c-5395-b540-e7d1b97b1be9",
+                    "nodeId": "87d26546-b18c-5395-b540-e7d1b97b1be9",
                     "diagramVersion": {
-                        "versionId": "{{ ns.diagram_id }}"
+                        "versionId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb"
                     },
-                    "diagramVersionId": "{{ ns.diagram_id }}",
+                    "diagramVersionId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb",
                     "nodeTypeId": 104,
                     "nodeName": "key_value__allocation",
                     "jsonProperty": {
@@ -123,7 +84,7 @@
                                 "alias": "table_name"
                             },
                             {
-                                "expression": "cast( case  when table_name in  ({{ ns.key_value_tables }})  then\\n        IF(json_value(data, '$.op') = 'd', json_value(data, '$.before.id'), json_value(data, '$.after.id'))  end as string )",
+                                "expression": "cast( case  when table_name in  ('public.heartbeat', 'public.resolutions', 'public.user_actions', 'public.alfa_capture_transanctions',  'public.client_reports', 'public.sales_users', 'public.lm_clients', 'public.clients', 'public.inbound_containers')  then\\n        IF(json_value(data, '$.op') = 'd', json_value(data, '$.before.id'), json_value(data, '$.after.id'))  end as string )",
                                 "alias": "key_value"
                             },
                             {
@@ -152,42 +113,38 @@
                     "displayType": "Трансформация - Простая - Маппинг"
                 },
                 {
-                    "nodeVersionId": "{{ ns.read_db_log_version_id }}",
-                    "nodeId": "{{ ns.read_db_log_id }}",
+                    "nodeVersionId": "b5453bb5-f808-581f-b2ef-c167bc374f9b",
+                    "nodeId": "b5453bb5-f808-581f-b2ef-c167bc374f9b",
                     "diagramVersion": {
-                        "versionId": "{{ ns.diagram_id }}"
+                        "versionId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb"
                     },
-                    "diagramVersionId": "{{ ns.diagram_id }}",
+                    "diagramVersionId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb",
                     "nodeTypeId": 135,
-                    "nodeName": "cdc__{{ ns.module_pname }}",
+                    "nodeName": "cdc__contact__contact2_web",
                     "jsonProperty": {
                         "nodeType": "135",
                         "execution_options": {
                             "logging": true
                         },
-                        "data_provider_uuid": "{{ ns.provider_uuid }}",
+                        "data_provider_uuid": "8876ea2f-b5ad-453f-9b85-03098efe30c8",
                         "capture_all_tables": false,
                         "timezone": "Europe/Moscow",
                         "include_schema": false,
-                        "tables": [
-                            {%- for obj in metaclass.metaobjects -%}
-                            {
-                                "name": "{{ obj.source_schema_pname }}.{{ obj.source_object_pname }}",
-                                "row_key": "{{ obj.sd_structure_uuid }}"
-                            }{%- if not loop.last %},{% endif %}
-                            {%- endfor -%}
-                        ],
+                        "tables": [{
+                                "name": "dbo.contact_log",
+                                "row_key": "824a7b0c-71e6-5116-a2a0-ec7e97d4957d"
+                            }],
                         "debezium": {
                             "properties": [
                                 {
                                     "name": "schema.include.list",
                                     "value": "dbo",
-                                    "row_key": "{{ ns.source_schema_uuid }}"
+                                    "row_key": "10b798cc-a471-5511-92aa-604047cf8468"
                                 },
                                 {
                                     "name": "snapshot.mode",
                                     "value": "no_data",
-                                    "row_key": "{{ ns.debezium_snapshot_row_key }}"
+                                    "row_key": "7085bf25-cc5b-4a27-94d1-42813bfb5078"
                                 }
                             ]
                         }
@@ -204,14 +161,14 @@
                     "displayType": "Источник - CDC - MS SQL MultiTable"
                 },
                 {
-                    "nodeVersionId": "{{ ns.kafka_node_version_id }}",
-                    "nodeId": "{{ ns.kafka_node_id }}",
+                    "nodeVersionId": "095f24b9-9278-541a-a82c-0cb9c0ae2771",
+                    "nodeId": "095f24b9-9278-541a-a82c-0cb9c0ae2771",
                     "diagramVersion": {
-                        "versionId": "{{ ns.diagram_id }}"
+                        "versionId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb"
                     },
-                    "diagramVersionId": "{{ ns.diagram_id }}",
+                    "diagramVersionId": "158299f3-f9b0-42a2-8138-b85cc0dadcfb",
                     "nodeTypeId": 103,
-                    "nodeName": "kafka__{{ ns.module_pname }}",
+                    "nodeName": "kafka__contact__contact2_web",
                     "jsonProperty": {
                         "nodeType": "103",
                         "kafka_connection_uuid": "0ae951b0-95a4-125a-8195-b297b027017f",
@@ -232,7 +189,7 @@
                                 "semantic": "AT_LEAST_ONCE",
                                 "topic_selection_type": "dynamic",
                                 "topic_selector": {
-                                    "prefix": "{{ ns.module_pname }}__",
+                                    "prefix": "contact__contact2_web__",
                                     "delimiter": "__",
                                     "fields": [
                                         "topic_body",
@@ -243,7 +200,7 @@
                                     {
                                         "name": "transaction.timeout.ms",
                                         "value": "900000",
-                                        "row_key": "{{ ns.kafka_tx_row_key }}"
+                                        "row_key": "e418b260-34ba-4a6a-be43-58d9617f8ba8"
                                     }
                                 ]
                             }
@@ -264,13 +221,13 @@
             ],
             "variableLinkAssociations": [],
             "variableNodeAssociations": [],
-            "changeDt": "{{ ns_current_date }}",
-            "createDt": "{{ ns_current_date }}"
+            "changeDt": "2026-01-27 10:48:15.168",
+            "createDt": "2026-01-27 10:48:15.168"
         }
     },
     "rootIdsAndDescriptions": {
-        "{{ ns.diagram_id }}": {
-            "{{ ns.diagram_id }}": "{{ ns.diagram_object_name }} (latest)"
+        "158299f3-f9b0-42a2-8138-b85cc0dadcfb": {
+            "158299f3-f9b0-42a2-8138-b85cc0dadcfb": "cdcf__contact2kafka_bdp__contact2_web__journal (latest)"
         }
     }
 }
